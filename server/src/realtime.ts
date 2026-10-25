@@ -11,15 +11,16 @@ export class RealtimeHub {
   private heartbeat: NodeJS.Timeout;
 
   constructor(
-    private getPublic: (sessionId: string) => unknown,
-    private getAdmin: (sessionId: string) => unknown,
+    private getPublic: (sessionId: string) => Promise<unknown>,
+    private getAdmin: (sessionId: string) => Promise<unknown>,
     private debounceMs = 120,
   ) {
     this.heartbeat = setInterval(() => this.ping(), 20_000);
     this.heartbeat.unref();
   }
 
-  subscribe(kind: 'public' | 'admin', sessionId: string, res: Response) {
+  async subscribe(kind: 'public' | 'admin', sessionId: string, res: Response) {
+    const initial = await (kind === 'public' ? this.getPublic(sessionId) : this.getAdmin(sessionId));
     res.status(200);
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -31,7 +32,7 @@ export class RealtimeHub {
     let set = map.get(sessionId);
     if (!set) map.set(sessionId, (set = new Set()));
     set.add(res);
-    this.send(res, kind === 'public' ? this.getPublic(sessionId) : this.getAdmin(sessionId));
+    this.send(res, initial);
     res.on('close', () => {
       set!.delete(res);
       if (set!.size === 0) map.delete(sessionId);
@@ -45,21 +46,21 @@ export class RealtimeHub {
       sessionId,
       setTimeout(() => {
         this.pending.delete(sessionId);
-        this.flush(sessionId);
+        void this.flush(sessionId);
       }, this.debounceMs),
     );
   }
 
-  private flush(sessionId: string) {
+  private async flush(sessionId: string) {
     const pub = this.publicClients.get(sessionId);
     const adm = this.adminClients.get(sessionId);
     try {
       if (pub?.size) {
-        const state = this.getPublic(sessionId);
+        const state = await this.getPublic(sessionId);
         for (const res of pub) this.send(res, state);
       }
       if (adm?.size) {
-        const state = this.getAdmin(sessionId);
+        const state = await this.getAdmin(sessionId);
         for (const res of adm) this.send(res, state);
       }
     } catch {

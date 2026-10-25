@@ -3,6 +3,8 @@ import { randomBytes } from 'node:crypto';
 export interface Config {
   port: number;
   dbPath: string;
+  /** PostgreSQL (например Neon). Если задан — используется вместо SQLite. */
+  databaseUrl: string | null;
   adminPassword: string;
   secret: string;
   publicBaseUrl: string | null;
@@ -34,6 +36,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   return {
     port: Number(env.PORT ?? 3000),
     dbPath: env.DB_PATH ?? './data/veche.db',
+    databaseUrl: env.DATABASE_URL?.trim() || null,
     adminPassword,
     secret,
     publicBaseUrl: env.PUBLIC_BASE_URL ? env.PUBLIC_BASE_URL.replace(/\/+$/, '') : null,

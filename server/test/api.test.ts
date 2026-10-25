@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { randomBytes } from 'node:crypto';
-import { openDb, type DB } from '../src/db';
+import { openDb, openDbRaw, type Db } from '../src/db';
 import { createApp, type AppContext } from '../src/app';
 import { loadConfig } from '../src/config';
 
 const PASSWORD = 'test-admin-password';
-let db: DB;
+let db: Db;
 let ctx: AppContext;
 let cookie: string;
 
@@ -48,15 +48,25 @@ const closeAndPublish = async (roundId: string) => {
   return res.body;
 };
 
+const PG_URL = process.env.TEST_DATABASE_URL;
+const backends = [{ name: 'SQLite', url: null as string | null }, ...(PG_URL ? [{ name: 'PostgreSQL', url: PG_URL }] : [])];
+
+describe.each(backends)('$name', ({ url }) => {
 beforeEach(async () => {
-  db = openDb(':memory:');
+  if (url) {
+    // Чистая схема для каждого теста.
+    const reset = await openDbRaw(url);
+    await reset.exec('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
+    await reset.close();
+  }
+  db = await openDb({ databaseUrl: url, dbPath: ':memory:' });
   ctx = createApp(db, loadConfig({ NODE_ENV: 'test', ADMIN_PASSWORD: PASSWORD, APP_SECRET: 'x'.repeat(40) }));
   cookie = await login();
 });
 
-afterEach(() => {
+afterEach(async () => {
   ctx.close();
-  db.close();
+  await db.close();
 });
 
 describe('доступ организатора', () => {
@@ -120,7 +130,7 @@ describe('голосование', () => {
     const results = await Promise.all(Array.from({ length: 8 }, () => vote(slug, roundId, 'relay', k)));
     expect(results.every((r) => r.status === 200)).toBe(true);
     expect(results.filter((r) => r.body.duplicate === false)).toHaveLength(1);
-    expect((db.prepare('SELECT COUNT(*) n FROM votes').get() as { n: number }).n).toBe(1);
+    expect(Number((await db.get<{ n: number }>('SELECT COUNT(*) AS n FROM votes'))!.n)).toBe(1);
   });
 
   it('40 одновременных участников', async () => {
@@ -131,6 +141,20 @@ describe('голосование', () => {
     expect(res.every((r) => r.status === 200 && r.body.status === 'accepted')).toBe(true);
     const admin = (await adminGet(`/api/admin/sessions/${id}`)).body;
     expect(admin.rounds[0].voteCount).toBe(40);
+  });
+
+  it('голоса во время закрытия тура: каждый либо принят и посчитан, либо отклонён', async () => {
+    const { id, slug } = await createSession();
+    const roundId = await openRound(id);
+    const votes = Array.from({ length: 30 }, () => vote(slug, roundId, 'relay'));
+    const close = adminPost(`/api/admin/rounds/${roundId}/close`);
+    const results = await Promise.all(votes);
+    expect((await close).status).toBe(200);
+    const accepted = results.filter((r) => r.status === 200).length;
+    expect(results.every((r) => r.status === 200 || r.body.code === 'round_closed')).toBe(true);
+    await adminPost(`/api/admin/rounds/${roundId}/publish`);
+    const pub = (await request(ctx.app).get(`/api/sessions/${slug}/state`)).body;
+    expect(pub.results[0].counts.relay).toBe(accepted);
   });
 
   it('недопустимый вариант и некорректный ключ отклоняются', async () => {
@@ -187,7 +211,7 @@ describe('скрытие результатов', () => {
     expect(body).not.toContain(k);
     expect(body).not.toContain('anonymous_voter_key');
     // В БД хранится только HMAC ключа.
-    const stored = db.prepare('SELECT anonymous_voter_key FROM votes').get() as { anonymous_voter_key: string };
+    const stored = (await db.get<{ anonymous_voter_key: string }>('SELECT anonymous_voter_key FROM votes'))!;
     expect(stored.anonymous_voter_key).not.toContain(k);
     expect(stored.anonymous_voter_key).toMatch(/^[0-9a-f]{64}$/);
   });
@@ -266,9 +290,10 @@ describe('демо-режим', () => {
     expect((await request(ctx.app).get('/api/current')).body.slug).toBe(real.slug);
 
     // Защита на уровне БД.
-    expect(() =>
-      db.prepare(`INSERT INTO votes (id, round_id, option_id, anonymous_voter_key, is_synthetic, created_at) VALUES ('x', ?, 'relay', 'k', 1, 'now')`).run(realRound),
-    ).toThrow(/synthetic_votes_demo_only/);
+    await expect(
+      db.run(`INSERT INTO votes (id, round_id, option_id, anonymous_voter_key, is_synthetic, created_at) VALUES ('x', ?, 'relay', 'k', 1, 'now')`, [realRound]),
+    ).rejects.toThrow(/synthetic_votes_demo_only/);
+    await expect(db.run(`UPDATE votes SET option_id = 'freedom'`)).rejects.toThrow(/votes_are_immutable/);
 
     await adminPost(`/api/admin/sessions/${demo.id}/demo/reset`);
     expect((await adminGet(`/api/admin/sessions/${demo.id}`)).body.rounds).toEqual([]);
@@ -302,7 +327,7 @@ describe('добровольцы и экспорт', () => {
     await adminPost(`/api/admin/sessions/${id}/decision`, { optionId: 'relay', method: 'vote' });
     expect((await request(ctx.app).post(`/api/sessions/${slug}/volunteer`).send({ idea: 'Бот для протоколов', contact: '@ivanov' })).status).toBe(200);
 
-    const cols = (db.prepare('PRAGMA table_info(volunteer_ideas)').all() as { name: string }[]).map((c) => c.name);
+    const cols = Object.keys((await db.get('SELECT * FROM volunteer_ideas'))!);
     expect(cols).toEqual(['id', 'session_id', 'idea', 'contact', 'created_at']);
 
     const list = (await adminGet(`/api/admin/sessions/${id}/volunteers`)).body.volunteers;
@@ -329,7 +354,7 @@ describe('добровольцы и экспорт', () => {
     expect(relay).toContain(',3,60,');
     expect(csv).not.toContain(k);
     expect(csv).not.toContain('secret-contact');
-    const hashes = (db.prepare('SELECT anonymous_voter_key FROM votes').all() as { anonymous_voter_key: string }[]).map((r) => r.anonymous_voter_key);
+    const hashes = (await db.all<{ anonymous_voter_key: string }>('SELECT anonymous_voter_key FROM votes')).map((r) => r.anonymous_voter_key);
     for (const h of hashes) expect(csv).not.toContain(h);
   });
 
@@ -354,4 +379,5 @@ describe('новая сессия', () => {
     const res = await vote(a.slug, r, 'relay');
     expect(res.body.code).toBe('round_closed');
   });
+});
 });

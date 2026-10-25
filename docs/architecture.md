@@ -25,7 +25,7 @@
 
 ## Схема БД
 
-`server/src/migrations/001_init.sql`:
+`server/src/migrations/{sqlite,postgres}/001_init.sql`:
 
 - `options`: три варианта, заполняются из `shared/options.ts`.
 - `voting_sessions` (`id, slug, title, status, is_demo, access_mode, expected_participants, created_at`).
