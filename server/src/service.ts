@@ -1,6 +1,6 @@
 import { createHmac, randomBytes, randomInt, randomUUID } from 'node:crypto';
 import type { Db } from './db';
-import { OPTION_IDS, getOption, isOptionId, type OptionId } from '../../shared/options';
+import { DEFAULT_AGENDA, OPTION_IDS, getOption, isOptionId, type OptionId } from '../../shared/options';
 import { computeOutcome, percentages, type RoundOutcome, type RoundType } from '../../shared/decision';
 import type {
   AccessMode,
@@ -25,6 +25,8 @@ interface SessionRow {
   access_mode: AccessMode;
   expected_participants: number | null;
   created_at: string;
+  agenda: string;
+  live_results: number;
 }
 
 interface RoundRow {
@@ -175,6 +177,8 @@ export class VecheService {
       isDemo: n(s.is_demo) === 1,
       accessMode: s.access_mode,
       expectedParticipants: s.expected_participants === null ? null : n(s.expected_participants),
+      agenda: s.agenda,
+      liveResults: n(s.live_results) === 1,
     };
   }
 
@@ -203,8 +207,16 @@ export class VecheService {
         publishedAt: r.published_at!,
       });
     }
+    // Живое распределение — только если организатор включил этот режим для сессии.
+    let live: PublicState['live'] = null;
+    if (current && current.status !== 'published' && n(s.live_results) === 1) {
+      const eligible = this.eligible(current);
+      const counts = await this.counts(current.id, eligible);
+      live = { roundId: current.id, counts, percents: percentages(eligible, counts), total: Object.values(counts).reduce((a, b) => a + b, 0) };
+    }
     return {
       session: this.publicSession(s),
+      live,
       round: current
         ? {
             id: current.id,
@@ -385,12 +397,21 @@ export class VecheService {
     return rows.map((s) => ({ id: s.id, slug: s.slug, title: s.title, status: s.status, isDemo: n(s.is_demo) === 1, createdAt: s.created_at }));
   }
 
-  async createSession(input: { title?: unknown; expectedParticipants?: unknown; accessMode?: unknown; isDemo?: unknown }): Promise<string> {
+  async createSession(input: {
+    title?: unknown;
+    expectedParticipants?: unknown;
+    accessMode?: unknown;
+    isDemo?: unknown;
+    agenda?: unknown;
+    liveResults?: unknown;
+  }): Promise<string> {
     const isDemo = input.isDemo === true;
+    const agenda = parseAgenda(input.agenda) ?? DEFAULT_AGENDA;
+    const live = input.liveResults === true ? 1 : 0;
     const accessMode: AccessMode = input.accessMode === 'codes' ? 'codes' : 'open';
     const expected = parseExpected(input.expectedParticipants);
     const title =
-      typeof input.title === 'string' && input.title.trim() ? input.title.trim().slice(0, 120) : isDemo ? 'Демо IT-вече' : 'IT-вече';
+      typeof input.title === 'string' && input.title.trim() ? input.title.trim().slice(0, 120) : isDemo ? 'Демо ИТ-вече' : 'ИТ-вече';
     const id = randomUUID();
     await this.db.tx(async (tx) => {
       // Новая реальная сессия архивирует предыдущие реальные; демо их не трогает.
@@ -403,18 +424,33 @@ export class VecheService {
       let slug = randomString(SLUG_ALPHABET, 6);
       while (await this.sessionBySlug(slug, tx)) slug = randomString(SLUG_ALPHABET, 6);
       await tx.run(
-        'INSERT INTO voting_sessions (id, slug, title, status, is_demo, access_mode, expected_participants, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [id, slug, title, 'draft', isDemo ? 1 : 0, accessMode, expected, now()],
+        `INSERT INTO voting_sessions (id, slug, title, status, is_demo, access_mode, expected_participants, created_at, agenda, live_results)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [id, slug, title, 'draft', isDemo ? 1 : 0, accessMode, expected, now(), agenda, live],
       );
     });
     return id;
   }
 
-  async updateSession(sessionId: string, input: { expectedParticipants?: unknown; title?: unknown }) {
+  async updateSession(sessionId: string, input: { expectedParticipants?: unknown; title?: unknown; agenda?: unknown; liveResults?: unknown }) {
     const s = await this.sessionById(sessionId);
     const expected = input.expectedParticipants === undefined ? s.expected_participants : parseExpected(input.expectedParticipants);
     const title = typeof input.title === 'string' && input.title.trim() ? input.title.trim().slice(0, 120) : s.title;
-    await this.db.run('UPDATE voting_sessions SET expected_participants = ?, title = ? WHERE id = ?', [expected, title, s.id]);
+    const agenda = input.agenda === undefined ? s.agenda : (parseAgenda(input.agenda) ?? s.agenda);
+    const live = typeof input.liveResults === 'boolean' ? (input.liveResults ? 1 : 0) : n(s.live_results);
+    await this.db.run('UPDATE voting_sessions SET expected_participants = ?, title = ?, agenda = ?, live_results = ? WHERE id = ?', [
+      expected,
+      title,
+      agenda,
+      live,
+      s.id,
+    ]);
+  }
+
+  /** Полное удаление сессии со всеми турами, голосами, решением, кодами и заявками. */
+  async deleteSession(sessionId: string) {
+    const s = await this.sessionById(sessionId);
+    await this.db.run('DELETE FROM voting_sessions WHERE id = ?', [s.id]);
   }
 
   /** Следующий допустимый шаг организатора — вычисляется сервером. */
@@ -575,8 +611,8 @@ export class VecheService {
     const rounds: AdminRound[] = [];
     for (const r of await this.rounds(s.id)) {
       const eligible = this.eligible(r);
-      // Распределение видно организатору только после закрытия тура.
-      const counts = r.status === 'open' ? null : await this.counts(r.id, eligible);
+      // Во время тура распределение видно, только если включён режим «голоса в реальном времени».
+      const counts = r.status === 'open' && n(s.live_results) !== 1 ? null : await this.counts(r.id, eligible);
       rounds.push({
         id: r.id,
         number: n(r.number),
@@ -676,11 +712,6 @@ export class VecheService {
     });
   }
 
-  async deleteDemo(sessionId: string) {
-    const s = await this.requireDemo(sessionId);
-    await this.db.run('DELETE FROM voting_sessions WHERE id = ?', [s.id]);
-  }
-
   // ---------- экспорт ----------
 
   /** CSV по турам. Без анонимных ключей и без контактов добровольцев. */
@@ -715,6 +746,15 @@ export class VecheService {
     }
     return '﻿' + lines.map((l) => l.map(csvCell).join(',')).join('\r\n') + '\r\n';
   }
+}
+
+function parseAgenda(v: unknown): string | null {
+  if (v === undefined || v === null) return null;
+  if (typeof v !== 'string') throw new ServiceError('invalid_agenda', 'Вопрос повестки должен быть текстом');
+  const t = v.trim();
+  if (!t) return null;
+  if (t.length > 300) throw new ServiceError('invalid_agenda', 'Вопрос повестки — до 300 символов');
+  return t;
 }
 
 function parseExpected(v: unknown): number | null {

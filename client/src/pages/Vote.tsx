@@ -8,9 +8,10 @@ import { ApiError, api, store, voterKey } from '../lib/api';
 import { useLive } from '../lib/live';
 import { accentStyles } from '../lib/accent';
 import { outcomeDetail, outcomeHeadline, roundLabel, votesWord } from '../lib/text';
-import { SelectOptionCard } from '../components/OptionCard';
-import { PhoneBars } from '../components/Results';
-import { Backdrop, Button, ConnectionBanner, DemoBadge, Logo, Modal, OptionIcon, Spinner } from '../components/ui';
+import { AgendaOptionCard, SelectOptionCard } from '../components/OptionCard';
+import { LiveBars, PhoneBars } from '../components/Results';
+import { OptionArt } from '../components/Scene';
+import { Backdrop, Button, ConnectionBanner, DemoBadge, Logo, MetalTitle, Modal, Spinner } from '../components/ui';
 
 export default function Vote() {
   const { slug = '' } = useParams();
@@ -44,13 +45,13 @@ export default function Vote() {
   }, [syncVoted, roundId]);
 
   useEffect(() => {
-    document.title = 'IT-ВЕЧЕ · голосование';
+    document.title = 'ИТ ВЕЧЕ · голосование';
   }, []);
 
   if (notFound)
     return (
       <Shell>
-        <Message icon={<AlertTriangle className="h-10 w-10 text-coral" />} title="Сессия не найдена">
+        <Message icon={<AlertTriangle className="h-10 w-10 text-danger" />} title="Сессия не найдена">
           Проверьте ссылку или отсканируйте QR-код на экране ещё раз.
         </Message>
       </Shell>
@@ -64,14 +65,14 @@ export default function Vote() {
 
   if (s.session.status === 'archived' && !s.decision) {
     content = (
-      <Message icon={<Hourglass className="h-10 w-10 text-white/60" />} title="Эта сессия завершена">
+      <Message icon={<Hourglass className="h-10 w-10 text-muted" />} title="Эта сессия завершена">
         Отсканируйте актуальный QR-код на экране зала.
       </Message>
     );
   } else if (s.decision) {
     content = <DecisionView state={s} slug={slug} />;
   } else if (!round) {
-    content = <BeforeStart />;
+    content = <BeforeStart state={s} />;
   } else if (round.status === 'open') {
     if (codesMode && !code) {
       content = (
@@ -153,36 +154,34 @@ function Message({ icon, title, children }: { icon: ReactNode; title: string; ch
     <div className="flex min-h-[65dvh] flex-col items-center justify-center text-center">
       <div className="glass mb-6 flex h-20 w-20 items-center justify-center rounded-3xl">{icon}</div>
       <h1 className="font-display text-2xl font-semibold leading-tight">{title}</h1>
-      <p className="mt-3 max-w-sm text-base leading-relaxed text-white/70">{children}</p>
+      <p className="mt-3 max-w-sm text-base leading-relaxed text-ice/85">{children}</p>
     </div>
   );
 }
 
-function BeforeStart() {
+/** Повестка до старта: вопрос и варианты ответа, чтобы участники успели ознакомиться. */
+function BeforeStart({ state }: { state: PublicState }) {
   return (
     <div>
-      <h1 className="text-gradient font-display text-4xl font-extrabold leading-tight">IT-ВЕЧЕ</h1>
-      <p className="mt-2 font-display text-lg font-semibold">Будущее цифровых 15 минут</p>
-      <p className="mt-1 text-white/65">Три сценария. Один выбор. Решение за вами.</p>
-      <div className="glass mt-6 flex items-center gap-3 rounded-2xl p-4">
-        <Hourglass className="h-5 w-5 shrink-0 text-electric-soft" aria-hidden />
-        <p className="text-sm text-white/80">Голосование скоро начнётся. Страница обновится сама — держите её открытой.</p>
+      <MetalTitle inline className="text-[40px]" />
+      <p className="mt-1 text-sm font-semibold text-muted">Будущее цифровых 15 минут</p>
+      <section aria-labelledby="agenda-h" className="mt-6">
+        <p className="text-xs font-bold uppercase tracking-[0.25em] text-neon">Повестка вече</p>
+        <h1 id="agenda-h" className="mt-2 text-[24px] font-extrabold leading-tight text-ice">
+          {state.session.agenda}
+        </h1>
+      </section>
+      <div className="glass mt-5 flex items-center gap-3 rounded-2xl p-4">
+        <Hourglass className="h-5 w-5 shrink-0 text-neon" aria-hidden />
+        <p className="text-sm text-ice/85">Голосование скоро начнётся. Ознакомьтесь с вариантами — страница обновится сама.</p>
       </div>
-      <ul className="mt-6 space-y-3">
-        {OPTIONS.map((o) => {
-          const a = accentStyles[o.accent];
-          return (
-            <li key={o.id} className="glass flex items-center gap-3 rounded-2xl p-4">
-              <OptionIcon id={o.id} className={`h-6 w-6 shrink-0 ${a.text}`} />
-              <div>
-                <p className="font-semibold">
-                  <span className={`font-display text-sm ${a.text}`}>{o.number}</span> {o.title}
-                </p>
-                <p className="text-sm text-white/60">«{o.slogan}»</p>
-              </div>
-            </li>
-          );
-        })}
+      <p className="mt-6 text-xs font-bold uppercase tracking-[0.25em] text-muted">Варианты ответа</p>
+      <ul className="mt-3 space-y-3">
+        {OPTIONS.map((o) => (
+          <li key={o.id}>
+            <AgendaOptionCard option={o} />
+          </li>
+        ))}
       </ul>
     </div>
   );
@@ -212,7 +211,7 @@ function CodeEntry({ slug, onValid }: { slug: string; onValid: (code: string) =>
         <KeyRound className="h-8 w-8 text-electric-soft" aria-hidden />
       </div>
       <h1 className="font-display text-2xl font-semibold">Введите код участника</h1>
-      <p className="mt-2 text-white/70">Код напечатан на карточке. Он анонимный и не связан с вашим именем.</p>
+      <p className="mt-2 text-ice/85">Код напечатан на карточке. Он анонимный и не связан с вашим именем.</p>
       <label htmlFor="code" className="sr-only">
         Код участника
       </label>
@@ -224,10 +223,10 @@ function CodeEntry({ slug, onValid }: { slug: string; onValid: (code: string) =>
         autoCapitalize="characters"
         spellCheck={false}
         placeholder="ABCD-EFGH"
-        className="mt-6 w-full rounded-2xl border border-white/15 bg-ink-850 px-5 py-4 text-center font-display text-2xl tracking-[0.2em] placeholder:text-white/25"
+        className="mt-6 w-full rounded-2xl border border-line bg-ink-850 px-5 py-4 text-center font-display text-2xl tracking-[0.2em] placeholder:text-muted/50"
       />
       {error && (
-        <p role="alert" className="mt-3 text-sm text-coral-soft">
+        <p role="alert" className="mt-3 text-sm text-danger-soft">
           {error}
         </p>
       )}
@@ -270,14 +269,21 @@ function VoteForm({
     try {
       const res = await api.post<{ status: string; roundId: string }>(`/api/sessions/${slug}/vote`, { roundId: round.id, optionId: selected, ...credentials });
       if (res.status === 'accepted') onAccepted(res.roundId, selected);
-      else setError({ text: 'Сервер не подтвердил голос. Попробуйте ещё раз.', retry: true });
+      else
+        setError({
+          text: 'Сервер не подтвердил голос. Попробуйте ещё раз.',
+          retry: true,
+        });
     } catch (e) {
       const err = e instanceof ApiError ? e : new ApiError(0, 'network', '');
       if (err.code === 'already_voted') onAlreadyVoted(round.id);
       else if (err.code === 'invalid_code') onInvalidCode();
       else if (err.code === 'round_closed') setError({ text: 'Тур уже закрыт — голос не учтён.', retry: false });
       else if (err.code === 'network' || err.status >= 500)
-        setError({ text: 'Нет связи с сервером. Голос НЕ отправлен. Проверьте интернет и повторите.', retry: true });
+        setError({
+          text: 'Нет связи с сервером. Голос НЕ отправлен. Проверьте интернет и повторите.',
+          retry: true,
+        });
       else setError({ text: err.message, retry: true });
     } finally {
       sendingRef.current = false;
@@ -299,9 +305,11 @@ function VoteForm({
 
   return (
     <div className="flex flex-1 flex-col">
-      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/50">{roundLabel(round.type, round.number)}</p>
+      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">{roundLabel(round.type, round.number)}</p>
       <h1 className="mt-1 font-display text-[28px] font-semibold leading-tight">Ваш голос имеет значение</h1>
-      <p className="mt-2 text-white/65">{round.type === 'main' ? 'Выберите один из трёх сценариев.' : 'Выберите один из вариантов этого тура.'} Голосование анонимное.</p>
+      <p className="mt-2 text-muted">
+        {round.type === 'main' ? 'Выберите один из трёх сценариев.' : 'Выберите один из вариантов этого тура.'} Голосование анонимное.
+      </p>
 
       <div role="radiogroup" aria-label="Варианты" className="mt-5 space-y-3">
         {options.map((o, i) => (
@@ -321,13 +329,18 @@ function VoteForm({
         ))}
       </div>
 
-
       <div className="sticky bottom-0 -mx-5 mt-auto bg-gradient-to-t from-ink-900 via-ink-900/95 to-transparent px-5 pb-2 pt-6">
         <AnimatePresence>
           {error && (
-            <motion.div role="alert" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mb-3 flex items-start gap-3 rounded-2xl border border-coral/50 bg-ink-850 p-4">
-              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-coral" aria-hidden />
-              <p className="text-sm text-white/90">{error.text}</p>
+            <motion.div
+              role="alert"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="mb-3 flex items-start gap-3 rounded-2xl border border-danger/50 bg-ink-850 p-4"
+            >
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-danger" aria-hidden />
+              <p className="text-sm text-ice/85">{error.text}</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -340,7 +353,7 @@ function VoteForm({
       <Modal open={confirm && !!sel} onClose={() => !sending && setConfirm(false)} title={sel ? `Вы выбираете «${sel.title}»` : ''}>
         {sel && (
           <>
-            <p className="text-white/70">«{sel.slogan}». После подтверждения изменить выбор в этом туре нельзя.</p>
+            <p className="text-ice/85">«{sel.slogan}». После подтверждения изменить выбор в этом туре нельзя.</p>
             <div className="mt-6 grid grid-cols-2 gap-3">
               <Button variant="secondary" onClick={() => setConfirm(false)} disabled={sending}>
                 Изменить
@@ -360,33 +373,41 @@ function VotedView({ state, fresh }: { state: PublicState; fresh: boolean }) {
   const round = state.round!;
   const choice = store.get(`veche:choice:${round.id}`) as OptionId | null;
   const opt = choice ? getOption(choice) : undefined;
+  const live = state.live && state.live.roundId === round.id ? state.live : null;
   return (
     <div className="flex min-h-[65dvh] flex-col items-center justify-center text-center">
       <motion.div
         initial={fresh ? { scale: 0.6, opacity: 0 } : false}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-        className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-emerald/15 ring-2 ring-emerald/50"
+        className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-neon/15 ring-2 ring-neon/50"
       >
-        <CheckCircle2 className="h-12 w-12 text-emerald" aria-hidden />
+        <CheckCircle2 className="h-12 w-12 text-neon" aria-hidden />
       </motion.div>
       <h1 className="font-display text-[26px] font-semibold leading-tight" role="status">
         {fresh ? 'Ваш голос принят!' : 'Вы уже проголосовали'}
       </h1>
-      <p className="mt-2 text-white/70">{fresh ? 'Спасибо за участие в IT-вече' : 'В этом туре ваш голос уже учтён сервером'}</p>
+      <p className="mt-2 text-ice/85">{fresh ? 'Спасибо за участие в ИТ-вече' : 'В этом туре ваш голос уже учтён сервером'}</p>
       {opt && (
-        <p className="mt-4 text-sm text-white/55">
+        <p className="mt-4 text-sm text-muted">
           Ваш выбор: <span className={`font-semibold ${accentStyles[opt.accent].text}`}>{opt.title}</span>
         </p>
       )}
-      <div className="glass mt-8 w-full rounded-2xl p-5">
-        <p className="text-sm uppercase tracking-[0.2em] text-white/50">Голосование идёт</p>
-        <p className="mt-2 text-sm text-white/55">Голосов принято</p>
-        <p className="font-display text-3xl font-semibold tabular-nums" aria-live="polite">
+      <div className="glass mt-8 w-full rounded-2xl p-5 text-left">
+        <p className="text-center text-sm uppercase tracking-[0.2em] text-muted">Голосование идёт</p>
+        <p className="mt-2 text-center text-sm text-muted">Голосов принято</p>
+        <p className="text-center font-display text-3xl font-semibold tabular-nums" aria-live="polite">
           {state.voteCount}
-          {state.session.expectedParticipants ? <span className="text-white/45"> из {state.session.expectedParticipants}</span> : null}
+          {state.session.expectedParticipants ? <span className="text-muted"> из {state.session.expectedParticipants}</span> : null}
         </p>
-        <p className="mt-1 text-sm text-white/55">Результаты скрыты до завершения тура</p>
+        {live ? (
+          <div className="mt-5 border-t border-line pt-5">
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-neon">Голоса в реальном времени</p>
+            <LiveBars eligible={round.eligible} counts={live.counts} percents={live.percents} />
+          </div>
+        ) : (
+          <p className="mt-1 text-center text-sm text-muted">Результаты скрыты до завершения тура</p>
+        )}
       </div>
     </div>
   );
@@ -396,19 +417,17 @@ function ResultsView({ result }: { result: PublicRoundResult }) {
   const more = result.outcome.kind === 'runoff' || result.outcome.kind === 'tiebreak' || result.outcome.kind === 'tie' || result.outcome.kind === 'no_votes';
   return (
     <div>
-      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/50">{roundLabel(result.type, result.number)} · итоги</p>
-      <h1 className="mt-1 font-display text-[28px] font-semibold leading-tight">{result.type === 'main' ? 'IT-вече завершено' : 'Тур завершён'}</h1>
-      <p className="mt-1 text-white/60">
-        Действительных голосов: {result.total}
-      </p>
+      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">{roundLabel(result.type, result.number)} · итоги</p>
+      <h1 className="mt-1 font-display text-[28px] font-semibold leading-tight">{result.type === 'main' ? 'ИТ-вече завершено' : 'Тур завершён'}</h1>
+      <p className="mt-1 text-muted">Действительных голосов: {result.total}</p>
       <div className="glass mt-6 rounded-3xl p-5">
         <PhoneBars result={result} />
       </div>
-      <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-5">
+      <div className="mt-5 rounded-2xl border border-line bg-ink-850/70 p-5">
         <p className="font-display text-lg font-semibold">{outcomeHeadline(result.outcome)}</p>
-        <p className="mt-1 text-sm text-white/70">{outcomeDetail(result.outcome)}</p>
+        <p className="mt-1 text-sm text-ice/85">{outcomeDetail(result.outcome)}</p>
       </div>
-      {more && <p className="mt-5 text-center text-sm text-white/55">Держите страницу открытой — следующий тур появится автоматически.</p>}
+      {more && <p className="mt-5 text-center text-sm text-muted">Держите страницу открытой — следующий тур появится автоматически.</p>}
     </div>
   );
 }
@@ -421,7 +440,7 @@ function DecisionView({ state, slug }: { state: PublicState; slug: string }) {
   const [sent, setSent] = useState(() => store.get(`veche:volunteer:${slug}`) === '1');
   return (
     <div>
-      <p className="text-center text-sm font-semibold uppercase tracking-[0.3em] text-white/55">Решение принято</p>
+      <p className="text-center text-sm font-semibold uppercase tracking-[0.3em] text-muted">Решение принято</p>
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -429,28 +448,30 @@ function DecisionView({ state, slug }: { state: PublicState; slug: string }) {
         className={`glass relative mt-5 overflow-hidden rounded-3xl border-2 ${a.border} p-6 text-center ${a.glow}`}
       >
         <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${a.gradient}`} aria-hidden />
-        <OptionIcon id={o.id} className={`relative mx-auto h-12 w-12 ${a.text}`} />
+        <OptionArt id={o.id} className="relative mx-auto h-28 w-full max-w-[260px] rounded-xl" />
         <p className={`relative mt-3 font-display text-sm font-semibold ${a.text}`}>{o.number}</p>
-        <h1 className="relative font-display text-3xl font-extrabold leading-tight">{o.title}</h1>
+        <h1 className="metal-title-lite relative text-[28px] uppercase leading-tight">{o.title}</h1>
         <p className={`relative mt-4 font-display text-lg font-semibold ${a.text}`}>{o.finalPhrase}</p>
-        <p className="relative mt-3 text-sm text-white/70">
-          {d.optionId === 'freedom' ? 'Регулярный формат завершается. Контрольный пересмотр — через три месяца' : 'Проверим выбранный формат в течение трёх месяцев'}
+        <p className="relative mt-3 text-sm text-ice/85">
+          {d.optionId === 'freedom'
+            ? 'Регулярный формат завершается. Контрольный пересмотр — через три месяца'
+            : 'Проверим выбранный формат в течение трёх месяцев'}
         </p>
       </motion.div>
       {d.optionId === 'relay' && (
         <div className="mt-6 text-center">
           {sent ? (
             <div className="glass rounded-2xl p-5">
-              <Sparkles className="mx-auto h-6 w-6 text-emerald" aria-hidden />
+              <Sparkles className="mx-auto h-6 w-6 text-neon" aria-hidden />
               <p className="mt-2 font-semibold">Спасибо! Организатор свяжется с вами.</p>
             </div>
           ) : (
             <>
               <p className="font-display text-xl font-semibold">Кто готов принять цифровую эстафету?</p>
-              <Button className="mt-4 w-full !bg-emerald text-lg !text-ink-900 hover:!bg-emerald-soft" onClick={() => setFormOpen(true)}>
+              <Button className="mt-4 w-full !bg-neon text-lg !text-ink-900 hover:!bg-neon-soft" onClick={() => setFormOpen(true)}>
                 У меня есть кейс!
               </Button>
-              <p className="mt-2 text-xs text-white/50">Форма не связана с вашим анонимным голосом</p>
+              <p className="mt-2 text-xs text-muted">Форма не связана с вашим анонимным голосом</p>
             </>
           )}
         </div>
@@ -466,12 +487,12 @@ function DecisionView({ state, slug }: { state: PublicState; slug: string }) {
         }}
       />
       {state.results.length > 0 && (
-        <details className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <details className="mt-8 rounded-2xl border border-line bg-ink-850/70 p-4">
           <summary className="cursor-pointer font-semibold">Итоги голосования</summary>
           <div className="mt-4 space-y-6">
             {state.results.map((r) => (
               <div key={r.roundId}>
-                <p className="mb-3 text-sm text-white/60">
+                <p className="mb-3 text-sm text-muted">
                   {roundLabel(r.type, r.number)} · {r.total} {votesWord(r.total)}
                 </p>
                 <PhoneBars result={r} />
@@ -480,7 +501,7 @@ function DecisionView({ state, slug }: { state: PublicState; slug: string }) {
           </div>
         </details>
       )}
-      <p className="mt-6 text-center text-xs text-white/45">
+      <p className="mt-6 text-center text-xs text-muted">
         {d.method === 'ceo' ? 'Решение генерального директора после равенства голосов' : 'По итогам голосования, подтверждено генеральным директором'}
       </p>
     </div>
@@ -520,7 +541,7 @@ function VolunteerForm({ open, slug, onClose, onSent }: { open: boolean; slug: s
             maxLength={2000}
             rows={4}
             required
-            className="w-full rounded-2xl border border-white/15 bg-ink-900 px-4 py-3 text-base placeholder:text-white/30"
+            className="w-full rounded-2xl border border-line bg-ink-900 px-4 py-3 text-base placeholder:text-muted/50"
             placeholder="Например: как я готовлю протоколы встреч с помощью ИИ"
           />
         </div>
@@ -534,12 +555,12 @@ function VolunteerForm({ open, slug, onClose, onSent }: { open: boolean; slug: s
             onChange={(e) => setContact(e.target.value)}
             maxLength={300}
             required
-            className="w-full rounded-2xl border border-white/15 bg-ink-900 px-4 py-3 text-base placeholder:text-white/30"
+            className="w-full rounded-2xl border border-line bg-ink-900 px-4 py-3 text-base placeholder:text-muted/50"
             placeholder="Имя и телефон, почта или мессенджер"
           />
         </div>
         {error && (
-          <p role="alert" className="text-sm text-coral-soft">
+          <p role="alert" className="text-sm text-danger-soft">
             {error}
           </p>
         )}
@@ -555,4 +576,3 @@ function VolunteerForm({ open, slug, onClose, onSent }: { open: boolean; slug: s
     </Modal>
   );
 }
-

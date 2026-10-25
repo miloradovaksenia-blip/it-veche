@@ -17,8 +17,8 @@ export default function Home() {
     <div className="flex min-h-[100dvh] flex-col items-center justify-center p-6 text-center">
       <Backdrop />
       <Logo />
-      <h1 className="mt-8 font-display text-3xl font-semibold">IT-вече ещё не открыто</h1>
-      <p className="mt-3 text-white/65">Отсканируйте QR-код на экране зала, когда организатор начнёт сессию.</p>
+      <h1 className="mt-8 font-display text-3xl font-semibold">ИТ-вече ещё не открыто</h1>
+      <p className="mt-3 text-muted">Отсканируйте QR-код на экране зала, когда организатор начнёт сессию.</p>
     </div>
   );
 }

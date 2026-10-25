@@ -8,6 +8,8 @@ import {
   ExternalLink,
   FlaskConical,
   Gavel,
+  Activity,
+  ListChecks,
   KeyRound,
   LogOut,
   MonitorPlay,
@@ -20,9 +22,10 @@ import {
   Trash2,
   Users,
 } from 'lucide-react';
-import { getOption, type OptionId } from '../../../shared/options';
+import { DEFAULT_AGENDA, OPTIONS, getOption, type OptionId } from '../../../shared/options';
 import type { AdminRound, AdminSessionSummary, AdminState } from '../../../shared/types';
 import { ApiError, api, store } from '../lib/api';
+import { LiveBars } from '../components/Results';
 import { useLive, usePublicBaseUrl } from '../lib/live';
 import { accentStyles } from '../lib/accent';
 import { outcomeDetail, outcomeHeadline, roundLabel, title, votesWord } from '../lib/text';
@@ -31,7 +34,7 @@ import { Backdrop, Button, ConnectionBanner, DemoBadge, Logo, Modal, OptionIcon,
 export default function Admin() {
   const [admin, setAdmin] = useState<boolean | null>(null);
   useEffect(() => {
-    document.title = 'IT-ВЕЧЕ · организатор';
+    document.title = 'ИТ ВЕЧЕ · организатор';
     api
       .get<{ admin: boolean }>('/api/admin/me')
       .then((r) => setAdmin(r.admin))
@@ -64,7 +67,7 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
       <form onSubmit={submit} className="glass w-full max-w-sm rounded-3xl p-7">
         <Logo />
         <h1 className="mt-6 font-display text-2xl font-semibold">Вход организатора</h1>
-        <label htmlFor="password" className="mt-5 block text-sm font-semibold text-white/70">
+        <label htmlFor="password" className="mt-5 block text-sm font-semibold text-ice/85">
           Пароль
         </label>
         <input
@@ -73,10 +76,10 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
           autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mt-1.5 w-full rounded-2xl border border-white/15 bg-ink-900 px-4 py-3"
+          className="mt-1.5 w-full rounded-2xl border border-line bg-ink-900 px-4 py-3"
         />
         {error && (
-          <p role="alert" className="mt-3 text-sm text-coral-soft">
+          <p role="alert" className="mt-3 text-sm text-danger-soft">
             {error}
           </p>
         )}
@@ -158,21 +161,27 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6">
         <header className="flex flex-wrap items-center gap-3">
           <Logo />
-          <span className="text-white/40">·</span>
-          <span className="font-semibold text-white/70">Панель организатора</span>
+          <span className="text-muted">·</span>
+          <span className="font-semibold text-ice/85">Панель организатора</span>
           <div className="ml-auto flex flex-wrap items-center gap-2">
             {sessions.length > 0 && (
-              <label className="flex items-center gap-2 text-sm text-white/60">
+              <label className="flex items-center gap-2 text-sm text-muted">
                 <span className="sr-only sm:not-sr-only">Сессия</span>
                 <select
                   value={selected ?? ''}
                   onChange={(e) => setSelected(e.target.value)}
-                  className="max-w-[260px] rounded-xl border border-white/15 bg-ink-850 px-3 py-2.5 text-white"
+                  className="max-w-[260px] rounded-xl border border-line bg-ink-850 px-3 py-2.5 text-white"
                 >
                   {sessions.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.isDemo ? '[DEMO] ' : ''}
-                      {s.title} · {new Date(s.createdAt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      {s.title} ·{' '}
+                      {new Date(s.createdAt).toLocaleString('ru-RU', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                       {s.status === 'archived' ? ' (архив)' : ''}
                     </option>
                   ))}
@@ -201,7 +210,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
         {!selected ? (
           <div className="glass mx-auto mt-16 max-w-lg rounded-3xl p-8 text-center">
             <h1 className="font-display text-2xl font-semibold">Создайте первую сессию</h1>
-            <p className="mt-2 text-white/65">Сессия — это одно IT-вече: ссылка, QR-код и туры голосования.</p>
+            <p className="mt-2 text-muted">Сессия — это одно ИТ-вече: ссылка, QR-код и туры голосования.</p>
             <div className="mt-6 flex justify-center gap-3">
               <Button onClick={() => setNewOpen('real')}>
                 <Plus className="h-4 w-4" aria-hidden /> Новая сессия
@@ -234,7 +243,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       <Modal open={!!confirm} onClose={() => !busy && setConfirm(null)} title={confirm?.title ?? ''}>
         {confirm && (
           <>
-            <div className="text-white/75">{confirm.body}</div>
+            <div className="text-ice/85">{confirm.body}</div>
             <div className="mt-6 grid grid-cols-2 gap-3">
               <Button variant="secondary" onClick={() => setConfirm(null)} disabled={busy}>
                 Отмена
@@ -256,7 +265,10 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       </Modal>
 
       {toast && (
-        <div role="status" className={`fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-2xl px-5 py-3 font-semibold shadow-2xl ${toast.error ? 'bg-coral-deep' : 'bg-white text-ink-900'}`}>
+        <div
+          role="status"
+          className={`fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-2xl px-5 py-3 font-semibold shadow-2xl ${toast.error ? 'bg-danger-deep' : 'bg-white text-ink-900'}`}
+        >
           {toast.text}
         </div>
       )}
@@ -298,9 +310,7 @@ function SessionView({
             </h1>
             {s.isDemo && <DemoBadge />}
             <SessionStatusBadge status={s.status} />
-            {s.accessMode === 'codes' && (
-              <span className="rounded-full bg-electric/15 px-3 py-1 text-xs font-semibold text-electric-soft">Вход по кодам</span>
-            )}
+            {s.accessMode === 'codes' && <span className="rounded-full bg-electric/15 px-3 py-1 text-xs font-semibold text-electric-soft">Вход по кодам</span>}
           </div>
           <dl className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
             <Stat label="Тур" value={current ? `${current.number} · ${roundLabel(current.type, current.number)}` : '—'} />
@@ -310,21 +320,49 @@ function SessionView({
           </dl>
           <div className="mt-6 flex flex-wrap items-end gap-x-4 gap-y-2">
             <div>
-              <p className="text-sm text-white/55">Голосов принято</p>
+              <p className="text-sm text-muted">Голосов принято</p>
               <p className="font-display text-6xl font-extrabold tabular-nums leading-none" aria-live="polite">
                 {current?.voteCount ?? 0}
-                {s.expectedParticipants ? <span className="text-3xl text-white/40"> из {s.expectedParticipants}</span> : null}
+                {s.expectedParticipants ? <span className="text-3xl text-muted"> из {s.expectedParticipants}</span> : null}
               </p>
             </div>
-            <ExpectedEditor key={id + String(s.expectedParticipants)} value={s.expectedParticipants} disabled={archived} onSave={(v) => run(() => api.admin.patch(`/api/admin/sessions/${id}`, { expectedParticipants: v }), 'Сохранено')} />
+            <ExpectedEditor
+              key={id + String(s.expectedParticipants)}
+              value={s.expectedParticipants}
+              disabled={archived}
+              onSave={(v) =>
+                run(
+                  () =>
+                    api.admin.patch(`/api/admin/sessions/${id}`, {
+                      expectedParticipants: v,
+                    }),
+                  'Сохранено',
+                )
+              }
+            />
           </div>
-          {current?.status === 'open' && <p className="mt-3 text-sm text-white/50">Распределение голосов скрыто, пока тур открыт — даже здесь.</p>}
+          {current?.status === 'open' &&
+            (s.liveResults && current.counts && current.percents ? (
+              <div className="mt-5 rounded-2xl border border-line bg-ink-900/40 p-4">
+                <p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-neon">
+                  <Activity className="h-4 w-4" aria-hidden /> Голоса в реальном времени
+                </p>
+                <LiveBars eligible={current.eligible} counts={current.counts} percents={current.percents} size="admin" />
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-muted">
+                Распределение голосов скрыто, пока тур открыт — даже здесь. Включите «Голоса в реальном времени», чтобы видеть его.
+              </p>
+            ))}
         </section>
 
         {/* Главное действие */}
         <section className="glass rounded-3xl p-6" aria-label="Управление голосованием">
           <NextAction state={state} busy={busy} run={run} ask={ask} />
         </section>
+
+        {/* Повестка и режим показа */}
+        <AgendaPanel key={id} state={state} run={run} />
 
         {/* Результаты по турам */}
         {state.rounds.length > 0 && (
@@ -351,17 +389,27 @@ function SessionView({
           <div className="mt-4 flex items-center gap-4">
             <QrCode value={voteUrl} size={120} />
             <div className="min-w-0">
-              <p className="text-sm text-white/55">Для участников</p>
+              <p className="text-sm text-muted">Для участников</p>
               <p className="break-all font-semibold">{voteUrl.replace(/^https?:\/\//, '')}</p>
               {!base.startsWith('https://') && <p className="mt-1 text-xs text-amber-200">Для зала нужен публичный HTTPS-адрес (PUBLIC_BASE_URL)</p>}
             </div>
           </div>
           <div className="mt-4 grid gap-2">
-            <a href={hallUrl} target="_blank" rel="noreferrer" className="glass flex min-h-[48px] items-center gap-2 rounded-2xl px-4 font-semibold hover:bg-white/10">
-              <MonitorPlay className="h-4 w-4" aria-hidden /> Экран зала (16:9) <ExternalLink className="ml-auto h-4 w-4 text-white/50" aria-hidden />
+            <a
+              href={hallUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="glass flex min-h-[48px] items-center gap-2 rounded-2xl px-4 font-semibold hover:border-neon/50"
+            >
+              <MonitorPlay className="h-4 w-4" aria-hidden /> Экран зала (16:9) <ExternalLink className="ml-auto h-4 w-4 text-muted" aria-hidden />
             </a>
-            <a href={`/s/${s.slug}`} target="_blank" rel="noreferrer" className="glass flex min-h-[48px] items-center gap-2 rounded-2xl px-4 font-semibold hover:bg-white/10">
-              <Smartphone className="h-4 w-4" aria-hidden /> Страница голосования <ExternalLink className="ml-auto h-4 w-4 text-white/50" aria-hidden />
+            <a
+              href={`/s/${s.slug}`}
+              target="_blank"
+              rel="noreferrer"
+              className="glass flex min-h-[48px] items-center gap-2 rounded-2xl px-4 font-semibold hover:border-neon/50"
+            >
+              <Smartphone className="h-4 w-4" aria-hidden /> Страница голосования <ExternalLink className="ml-auto h-4 w-4 text-muted" aria-hidden />
             </a>
             <Button
               variant="secondary"
@@ -374,12 +422,12 @@ function SessionView({
             </Button>
             <a
               href={`/api/admin/sessions/${id}/export.csv`}
-              className="glass flex min-h-[48px] items-center gap-2 rounded-2xl px-4 font-semibold hover:bg-white/10"
+              className="glass flex min-h-[48px] items-center gap-2 rounded-2xl px-4 font-semibold hover:border-neon/50"
               download
             >
               <Download className="h-4 w-4" aria-hidden /> Экспортировать CSV
             </a>
-            <Link to="/admin/guide" className="px-1 pt-1 text-sm text-white/60 underline-offset-4 hover:text-white hover:underline">
+            <Link to="/admin/guide" className="px-1 pt-1 text-sm text-muted underline-offset-4 hover:text-white hover:underline">
               Памятка организатору
             </Link>
           </div>
@@ -387,25 +435,173 @@ function SessionView({
 
         {s.accessMode === 'codes' && <CodesPanel state={state} run={run} />}
         <VolunteersPanel state={state} ask={ask} />
+        <DeleteSessionPanel state={state} ask={ask} reloadSessions={reloadSessions} onDeleted={onDeleted} />
         <AuditPanel sessionId={id} version={state.rounds.length + (state.decision ? 1 : 0) + (current?.status ?? '')} />
       </aside>
     </div>
   );
 }
 
-function NextAction({ state, busy, run, ask }: { state: AdminState; busy: boolean; run: (fn: () => Promise<unknown>, ok?: string) => Promise<void>; ask: (c: Confirm) => void }) {
+function AgendaPanel({ state, run }: { state: AdminState; run: (fn: () => Promise<unknown>, ok?: string) => Promise<void> }) {
+  const s = state.session;
+  const archived = s.status === 'archived';
+  const [agenda, setAgenda] = useState(s.agenda);
+  const changed = agenda.trim() !== s.agenda && agenda.trim().length > 0;
+  return (
+    <section className="glass rounded-3xl p-6" aria-labelledby="agenda-h">
+      <div className="flex items-center gap-2">
+        <ListChecks className="h-5 w-5 text-neon" aria-hidden />
+        <h2 id="agenda-h" className="font-display text-lg font-semibold">
+          Повестка вече
+        </h2>
+      </div>
+      <p className="mt-2 text-sm text-muted">Вопрос и варианты ответа видны на экране зала и на телефонах ещё до старта голосования.</p>
+      <form
+        className="mt-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void run(
+            () =>
+              api.admin.patch(`/api/admin/sessions/${s.id}`, {
+                agenda: agenda.trim(),
+              }),
+            'Повестка сохранена',
+          );
+        }}
+      >
+        <label htmlFor="agenda-q" className="mb-1 block text-sm font-semibold text-ice/85">
+          Вопрос, выносимый на вече
+        </label>
+        <textarea
+          id="agenda-q"
+          value={agenda}
+          maxLength={300}
+          rows={2}
+          disabled={archived}
+          onChange={(e) => setAgenda(e.target.value)}
+          className="w-full rounded-2xl border border-line bg-ink-900 px-4 py-3"
+        />
+        {changed && (
+          <div className="mt-2 flex gap-2">
+            <Button type="submit" variant="secondary">
+              Сохранить вопрос
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setAgenda(s.agenda)}>
+              Отменить
+            </Button>
+          </div>
+        )}
+      </form>
+      <p className="mt-4 text-sm font-semibold text-ice/85">Варианты ответа</p>
+      <ol className="mt-2 space-y-1.5 text-sm">
+        {OPTIONS.map((o) => (
+          <li key={o.id} className="flex gap-2">
+            <span className={`font-display font-semibold ${accentStyles[o.accent].text}`}>{o.number}</span>
+            <span>
+              <span className="font-semibold">{o.title}</span> <span className="text-muted">— {o.slogan}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+      <label className="mt-5 flex items-start gap-3 border-t border-line pt-5">
+        <input
+          type="checkbox"
+          checked={s.liveResults}
+          disabled={archived}
+          onChange={(e) =>
+            void run(
+              () =>
+                api.admin.patch(`/api/admin/sessions/${s.id}`, {
+                  liveResults: e.target.checked,
+                }),
+              e.target.checked ? 'Голоса видны в реальном времени' : 'Распределение скрыто до итогов',
+            )
+          }
+          className="mt-1 h-5 w-5 accent-[#00DFFF]"
+        />
+        <span className="text-sm">
+          <span className="font-semibold">Голоса в реальном времени</span>
+          <span className="block text-muted">
+            Распределение голосов по вариантам видно на экране зала, у вас и у участников (после того как они проголосовали) прямо во время тура. Выключите,
+            если хотите сохранить интригу до показа результатов.
+          </span>
+        </span>
+      </label>
+    </section>
+  );
+}
+
+function DeleteSessionPanel({
+  state,
+  ask,
+  reloadSessions,
+  onDeleted,
+}: {
+  state: AdminState;
+  ask: (c: Confirm) => void;
+  reloadSessions: () => Promise<void>;
+  onDeleted: () => void;
+}) {
+  const s = state.session;
+  const running = state.rounds.some((r) => r.status === 'open');
+  return (
+    <section className="rounded-3xl border border-danger/30 bg-danger/5 p-6" aria-labelledby="delete-h">
+      <h2 id="delete-h" className="font-display text-lg font-semibold">
+        Удаление вече
+      </h2>
+      <p className="mt-2 text-sm text-muted">Сессия удаляется полностью: туры, голоса, решение, коды и заявки. Восстановить её будет нельзя.</p>
+      <Button
+        variant="danger"
+        className="mt-4 w-full"
+        onClick={() =>
+          ask({
+            title: `Удалить «${s.title}»?`,
+            body: (
+              <>
+                {running && <span className="mb-2 block font-semibold text-danger-soft">Сейчас идёт голосование — оно прервётся.</span>}
+                Будут удалены все туры, голоса, решение, коды и заявки этой сессии. Ссылка и QR-код перестанут работать. Отменить действие нельзя. Если нужны
+                итоги, сначала экспортируйте CSV.
+              </>
+            ),
+            confirmLabel: 'Удалить навсегда',
+            danger: true,
+            run: async () => {
+              await api.admin.del(`/api/admin/sessions/${s.id}`);
+              onDeleted();
+              await reloadSessions();
+            },
+          })
+        }
+      >
+        <Trash2 className="h-4 w-4" aria-hidden /> Удалить вече
+      </Button>
+    </section>
+  );
+}
+
+function NextAction({
+  state,
+  busy,
+  run,
+  ask,
+}: {
+  state: AdminState;
+  busy: boolean;
+  run: (fn: () => Promise<unknown>, ok?: string) => Promise<void>;
+  ask: (c: Confirm) => void;
+}) {
   const id = state.session.id;
   const n = state.next;
   const startNext = () => run(() => api.admin.post(`/api/admin/sessions/${id}/rounds`, { mode: 'next' }), 'Тур открыт');
   const repeat = () => run(() => api.admin.post(`/api/admin/sessions/${id}/rounds`, { mode: 'repeat' }), 'Тур открыт заново');
   const big = 'w-full sm:w-auto text-lg px-7 min-h-[60px]';
 
-  if (state.session.status === 'archived') return <p className="text-white/70">Сессия в архиве. Создайте новую сессию для следующего IT-вече.</p>;
+  if (state.session.status === 'archived') return <p className="text-ice/85">Сессия в архиве. Создайте новую сессию для следующего ИТ-вече.</p>;
 
   switch (n.kind) {
     case 'start_main':
       return (
-        <ActionBlock hint="Участники увидят три варианта и смогут проголосовать.">
+        <ActionBlock hint="Сейчас на экране зала и на телефонах — повестка: вопрос и три варианта. Дайте участникам ознакомиться, затем начните голосование.">
           <Button className={big} onClick={startNext} loading={busy}>
             <Play className="h-5 w-5" aria-hidden /> Начать голосование
           </Button>
@@ -444,9 +640,9 @@ function NextAction({ state, busy, run, ask }: { state: AdminState; busy: boolea
       return (
         <ActionBlock hint="Результаты видите только вы. Покажите их, когда будете готовы — на экране зала начнётся анимация.">
           {r.outcome && (
-            <div className="mb-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="mb-4 rounded-2xl border border-line bg-ink-850/70 p-4">
               <p className="font-semibold">{outcomeHeadline(r.outcome)}</p>
-              <p className="text-sm text-white/65">{outcomeDetail(r.outcome)}</p>
+              <p className="text-sm text-muted">{outcomeDetail(r.outcome)}</p>
             </div>
           )}
           <Button className={big} loading={busy} onClick={() => run(() => api.admin.post(`/api/admin/rounds/${n.roundId}/publish`), 'Результаты показаны')}>
@@ -486,7 +682,11 @@ function NextAction({ state, busy, run, ask }: { state: AdminState; busy: boolea
                     title: `Решение генерального директора: «${title(opt)}»?`,
                     body: 'Фиксируется как решение генерального директора после равенства голосов. Действие необратимо.',
                     confirmLabel: 'Зафиксировать',
-                    run: () => api.admin.post(`/api/admin/sessions/${id}/decision`, { optionId: opt, method: 'ceo' }),
+                    run: () =>
+                      api.admin.post(`/api/admin/sessions/${id}/decision`, {
+                        optionId: opt,
+                        method: 'ceo',
+                      }),
                   })
                 }
               >
@@ -518,7 +718,11 @@ function NextAction({ state, busy, run, ask }: { state: AdminState; busy: boolea
                     ? 'Генеральный директор подтвердил решение. Фиксируется прекращение регулярного формата с контрольным пересмотром через три месяца.'
                     : 'Генеральный директор подтвердил решение. Формат запускается как трёхмесячный пилот.',
                 confirmLabel: 'Зафиксировать',
-                run: () => api.admin.post(`/api/admin/sessions/${id}/decision`, { optionId: n.optionId, method: 'vote' }),
+                run: () =>
+                  api.admin.post(`/api/admin/sessions/${id}/decision`, {
+                    optionId: n.optionId,
+                    method: 'vote',
+                  }),
               })
             }
           >
@@ -534,7 +738,7 @@ function NextAction({ state, busy, run, ask }: { state: AdminState; busy: boolea
           <CheckCircle2 className={`h-10 w-10 shrink-0 ${accentStyles[o.accent].text}`} aria-hidden />
           <div>
             <p className="font-display text-xl font-semibold">Решение зафиксировано: «{o.title}»</p>
-            <p className="text-sm text-white/60">
+            <p className="text-sm text-muted">
               {d.method === 'ceo' ? 'Решение ГД после ничьей' : 'По итогам голосования'} · {time(d.confirmedAt)}
             </p>
           </div>
@@ -547,7 +751,7 @@ function NextAction({ state, busy, run, ask }: { state: AdminState; busy: boolea
 function ActionBlock({ hint, children }: { hint: string; children: ReactNode }) {
   return (
     <div>
-      <p className="mb-4 text-white/70">{hint}</p>
+      <p className="mb-4 text-ice/85">{hint}</p>
       {children}
     </div>
   );
@@ -555,13 +759,13 @@ function ActionBlock({ hint, children }: { hint: string; children: ReactNode }) 
 
 function RoundCard({ round }: { round: AdminRound }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-ink-900/40 p-4">
+    <div className="rounded-2xl border border-line bg-ink-900/40 p-4">
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="font-semibold">
           {round.number}. {roundLabel(round.type, round.number)}
         </span>
-        <span className="text-white/50">· {roundStatusText(round.status)}</span>
-        <span className="ml-auto text-white/50">
+        <span className="text-muted">· {roundStatusText(round.status)}</span>
+        <span className="ml-auto text-muted">
           {round.voteCount} {votesWord(round.voteCount)}
         </span>
       </div>
@@ -574,10 +778,10 @@ function RoundCard({ round }: { round: AdminRound }) {
               <li key={opt} className="flex items-center gap-3 text-sm">
                 <OptionIcon id={opt} className={`h-4 w-4 shrink-0 ${a.text}`} />
                 <span className="w-44 shrink-0 truncate">{o.title}</span>
-                <span className="h-2 flex-1 overflow-hidden rounded-full bg-white/10">
+                <span className="h-2 flex-1 overflow-hidden rounded-full bg-ink-800">
                   <span className={`block h-full ${a.bg}`} style={{ width: `${round.percents![opt]}%` }} />
                 </span>
-                <span className="w-20 text-right tabular-nums text-white/75">
+                <span className="w-20 text-right tabular-nums text-ice/85">
                   {round.counts![opt]} · {round.percents![opt]}%
                 </span>
               </li>
@@ -585,9 +789,13 @@ function RoundCard({ round }: { round: AdminRound }) {
           })}
         </ul>
       ) : (
-        <p className="mt-2 text-sm text-white/50">Распределение появится после завершения тура.</p>
+        <p className="mt-2 text-sm text-muted">Распределение появится после завершения тура.</p>
       )}
-      {round.outcome && <p className="mt-3 text-sm text-white/70">{outcomeHeadline(round.outcome)}. {outcomeDetail(round.outcome)}</p>}
+      {round.outcome && (
+        <p className="mt-3 text-sm text-ice/85">
+          {outcomeHeadline(round.outcome)}. {outcomeDetail(round.outcome)}
+        </p>
+      )}
     </div>
   );
 }
@@ -613,19 +821,47 @@ function DemoTools({
   const eligible = open ? current.eligible : [];
   const [counts, setCounts] = useState<Record<string, string>>({});
 
-  const add = (plan: Partial<Record<OptionId, number>>) => run(() => api.admin.post(`/api/admin/sessions/${id}/demo/votes`, { counts: plan }), 'Тестовые голоса добавлены');
+  const add = (plan: Partial<Record<OptionId, number>>) =>
+    run(
+      () =>
+        api.admin.post(`/api/admin/sessions/${id}/demo/votes`, {
+          counts: plan,
+        }),
+      'Тестовые голоса добавлены',
+    );
 
-  const presets: { label: string; plan: () => Partial<Record<OptionId, number>> }[] =
+  const presets: {
+    label: string;
+    plan: () => Partial<Record<OptionId, number>>;
+  }[] =
     eligible.length === 3
       ? [
-          { label: 'Победа в 1-м туре', plan: () => ({ freedom: 3, navigator: 5, relay: 12 }) },
-          { label: 'Нет большинства', plan: () => ({ freedom: 7, navigator: 9, relay: 5 }) },
-          { label: 'Равенство за 2-е место', plan: () => ({ freedom: 6, navigator: 9, relay: 6 }) },
-          { label: 'Все поровну', plan: () => ({ freedom: 6, navigator: 6, relay: 6 }) },
+          {
+            label: 'Победа в 1-м туре',
+            plan: () => ({ freedom: 3, navigator: 5, relay: 12 }),
+          },
+          {
+            label: 'Нет большинства',
+            plan: () => ({ freedom: 7, navigator: 9, relay: 5 }),
+          },
+          {
+            label: 'Равенство за 2-е место',
+            plan: () => ({ freedom: 6, navigator: 9, relay: 6 }),
+          },
+          {
+            label: 'Все поровну',
+            plan: () => ({ freedom: 6, navigator: 6, relay: 6 }),
+          },
         ]
       : [
-          { label: 'Явный победитель', plan: () => Object.fromEntries(eligible.map((e, i) => [e, i === 0 ? 12 : 7])) },
-          { label: 'Ничья', plan: () => Object.fromEntries(eligible.map((e) => [e, 8])) },
+          {
+            label: 'Явный победитель',
+            plan: () => Object.fromEntries(eligible.map((e, i) => [e, i === 0 ? 12 : 7])),
+          },
+          {
+            label: 'Ничья',
+            plan: () => Object.fromEntries(eligible.map((e) => [e, 8])),
+          },
         ];
 
   return (
@@ -636,7 +872,7 @@ function DemoTools({
           Демо-инструменты
         </h2>
       </div>
-      <p className="mt-2 text-sm text-white/65">Синтетические голоса попадают только в эту демо-сессию и не влияют на реальные итоги.</p>
+      <p className="mt-2 text-sm text-muted">Синтетические голоса попадают только в эту демо-сессию и не влияют на реальные итоги.</p>
       {open ? (
         <>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -649,7 +885,7 @@ function DemoTools({
           <div className="mt-4 flex flex-wrap items-end gap-3">
             {eligible.map((opt) => (
               <label key={opt} className="text-sm">
-                <span className="mb-1 block text-white/65">{title(opt)}</span>
+                <span className="mb-1 block text-muted">{title(opt)}</span>
                 <input
                   type="number"
                   min={0}
@@ -657,7 +893,7 @@ function DemoTools({
                   inputMode="numeric"
                   value={counts[opt] ?? ''}
                   onChange={(e) => setCounts((c) => ({ ...c, [opt]: e.target.value }))}
-                  className="w-28 rounded-xl border border-white/15 bg-ink-900 px-3 py-2.5"
+                  className="w-28 rounded-xl border border-line bg-ink-900 px-3 py-2.5"
                 />
               </label>
             ))}
@@ -674,9 +910,9 @@ function DemoTools({
           </div>
         </>
       ) : (
-        <p className="mt-4 text-sm text-white/55">Откройте тур, чтобы добавить тестовые голоса.</p>
+        <p className="mt-4 text-sm text-muted">Откройте тур, чтобы добавить тестовые голоса.</p>
       )}
-      <div className="mt-5 flex flex-wrap gap-2 border-t border-white/10 pt-5">
+      <div className="mt-5 flex flex-wrap gap-2 border-t border-line pt-5">
         <Button
           variant="secondary"
           onClick={() =>
@@ -696,7 +932,7 @@ function DemoTools({
           onClick={() =>
             ask({
               title: 'Удалить демо-сессию?',
-              body: 'Демо-сессия будет удалена полностью.',
+              body: 'Демо-сессия будет удалена полностью вместе с турами и голосами.',
               confirmLabel: 'Удалить',
               danger: true,
               run: async () => {
@@ -725,9 +961,9 @@ function CodesPanel({ state, run }: { state: AdminState; run: (fn: () => Promise
           Одноразовые коды
         </h2>
       </div>
-      <p className="mt-2 text-sm text-white/65">
-        Выдано: {state.session.codesTotal}, использовано: {state.session.codesUsed}. Код даёт один голос в каждом туре и не связан с именем. Коды показываются один раз —
-        распечатайте их сразу.
+      <p className="mt-2 text-sm text-muted">
+        Выдано: {state.session.codesTotal}, использовано: {state.session.codesUsed}. Код даёт один голос в каждом туре и не связан с именем. Коды показываются
+        один раз — распечатайте их сразу.
       </p>
       <div className="mt-4 flex gap-2">
         <input
@@ -737,7 +973,7 @@ function CodesPanel({ state, run }: { state: AdminState; run: (fn: () => Promise
           value={count}
           onChange={(e) => setCount(e.target.value)}
           aria-label="Количество кодов"
-          className="w-24 rounded-xl border border-white/15 bg-ink-900 px-3 py-2.5"
+          className="w-24 rounded-xl border border-line bg-ink-900 px-3 py-2.5"
         />
         <Button
           variant="secondary"
@@ -755,7 +991,7 @@ function CodesPanel({ state, run }: { state: AdminState; run: (fn: () => Promise
         <div className="mt-4">
           <div id="codes-print" className="grid grid-cols-3 gap-2 font-mono text-sm">
             {codes.map((c) => (
-              <span key={c} className="rounded-lg bg-white/10 px-2 py-1.5 text-center">
+              <span key={c} className="rounded-lg bg-ink-800 px-2 py-1.5 text-center">
                 {c}
               </span>
             ))}
@@ -773,7 +1009,7 @@ function printCodes(codes: string[], url: string) {
   const w = window.open('', '_blank');
   if (!w) return;
   const doc = w.document;
-  doc.title = 'Коды IT-вече';
+  doc.title = 'Коды ИТ-вече';
   const style = doc.createElement('style');
   style.textContent =
     'body{font-family:system-ui,sans-serif;margin:16px}.g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.c{border:1px dashed #999;padding:14px;text-align:center}.k{font:700 22px monospace;letter-spacing:2px;margin:6px 0}.u{font-size:11px;color:#555}';
@@ -784,7 +1020,7 @@ function printCodes(codes: string[], url: string) {
     const card = doc.createElement('div');
     card.className = 'c';
     const t = doc.createElement('div');
-    t.textContent = 'IT-ВЕЧЕ · код участника';
+    t.textContent = 'ИТ ВЕЧЕ · код участника';
     const k = doc.createElement('div');
     k.className = 'k';
     k.textContent = code;
@@ -803,7 +1039,14 @@ function VolunteersPanel({ state, ask }: { state: AdminState; ask: (c: Confirm) 
   const id = state.session.id;
   const load = useCallback(() => {
     api.admin
-      .get<{ volunteers: { id: string; idea: string; contact: string; createdAt: string }[] }>(`/api/admin/sessions/${id}/volunteers`)
+      .get<{
+        volunteers: {
+          id: string;
+          idea: string;
+          contact: string;
+          createdAt: string;
+        }[];
+      }>(`/api/admin/sessions/${id}/volunteers`)
       .then((r) => setList(r.volunteers))
       .catch(() => setList([]));
   }, [id]);
@@ -815,20 +1058,20 @@ function VolunteersPanel({ state, ask }: { state: AdminState; ask: (c: Confirm) 
   return (
     <section className="glass rounded-3xl p-6" aria-labelledby="vol-h">
       <div className="flex items-center gap-2">
-        <Users className="h-5 w-5 text-emerald" aria-hidden />
+        <Users className="h-5 w-5 text-neon" aria-hidden />
         <h2 id="vol-h" className="font-display text-lg font-semibold">
           Добровольцы эстафеты · {state.volunteerCount}
         </h2>
       </div>
-      <p className="mt-2 text-sm text-white/55">Заявки не связаны с голосами и не попадают в CSV-отчёт.</p>
+      <p className="mt-2 text-sm text-muted">Заявки не связаны с голосами и не попадают в CSV-отчёт.</p>
       <ul className="mt-4 space-y-3">
         {(list ?? []).map((v) => (
-          <li key={v.id} className="rounded-2xl border border-white/10 bg-ink-900/40 p-3 text-sm">
+          <li key={v.id} className="rounded-2xl border border-line bg-ink-900/40 p-3 text-sm">
             <p className="whitespace-pre-wrap">{v.idea}</p>
-            <p className="mt-1 text-white/60">{v.contact}</p>
+            <p className="mt-1 text-muted">{v.contact}</p>
             <button
               type="button"
-              className="mt-2 inline-flex min-h-[36px] items-center gap-1 text-xs text-coral-soft hover:text-coral"
+              className="mt-2 inline-flex min-h-[36px] items-center gap-1 text-xs text-danger-soft hover:text-danger"
               onClick={() =>
                 ask({
                   title: 'Удалить заявку?',
@@ -885,6 +1128,7 @@ const AUDIT_LABELS: Record<string, string> = {
   demo_reset: 'Сброс демо',
   volunteer_deleted: 'Заявка удалена',
   volunteers_deleted: 'Заявки удалены',
+  session_deleted: 'Сессия удалена',
 };
 
 function AuditPanel({ sessionId, version }: { sessionId: string; version: string | number }) {
@@ -900,12 +1144,12 @@ function AuditPanel({ sessionId, version }: { sessionId: string; version: string
       <summary className="cursor-pointer font-display text-lg font-semibold">Журнал действий</summary>
       <ul className="mt-4 space-y-1.5 text-sm">
         {entries.map((e) => (
-          <li key={e.id} className="flex justify-between gap-3 text-white/75">
+          <li key={e.id} className="flex justify-between gap-3 text-ice/85">
             <span>{AUDIT_LABELS[e.action] ?? e.action}</span>
-            <span className="tabular-nums text-white/45">{time(e.createdAt)}</span>
+            <span className="tabular-nums text-muted">{time(e.createdAt)}</span>
           </li>
         ))}
-        {entries.length === 0 && <li className="text-white/50">Пока пусто</li>}
+        {entries.length === 0 && <li className="text-muted">Пока пусто</li>}
       </ul>
     </details>
   );
@@ -919,12 +1163,21 @@ function NewSessionModal({
 }: {
   mode: false | 'real' | 'demo';
   onClose: () => void;
-  onCreate: (b: { title?: string; expectedParticipants?: number; accessMode: 'open' | 'codes'; isDemo: boolean }) => Promise<void>;
+  onCreate: (b: {
+    title?: string;
+    expectedParticipants?: number;
+    accessMode: 'open' | 'codes';
+    isDemo: boolean;
+    agenda: string;
+    liveResults: boolean;
+  }) => Promise<void>;
   hasActive: boolean;
 }) {
   const [titleV, setTitle] = useState('');
   const [expected, setExpected] = useState('25');
   const [codes, setCodes] = useState(false);
+  const [agenda, setAgenda] = useState(DEFAULT_AGENDA);
+  const [live, setLive] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const demo = mode === 'demo';
@@ -937,7 +1190,14 @@ function NewSessionModal({
           setBusy(true);
           setError('');
           try {
-            await onCreate({ title: titleV || undefined, expectedParticipants: expected ? Number(expected) : undefined, accessMode: codes ? 'codes' : 'open', isDemo: demo });
+            await onCreate({
+              title: titleV || undefined,
+              expectedParticipants: expected ? Number(expected) : undefined,
+              accessMode: codes ? 'codes' : 'open',
+              isDemo: demo,
+              agenda: agenda.trim(),
+              liveResults: live,
+            });
             setTitle('');
           } catch (err) {
             setError(err instanceof ApiError ? err.message : 'Ошибка');
@@ -951,24 +1211,56 @@ function NewSessionModal({
             Текущая сессия будет перенесена в архив, её открытый тур закроется. Ссылка и QR-код изменятся.
           </p>
         )}
-        {demo && <p className="text-sm text-white/65">Отдельная тестовая сессия с меткой DEMO. Реальные итоги не затрагиваются.</p>}
+        {demo && <p className="text-sm text-muted">Отдельная тестовая сессия с меткой DEMO. Реальные итоги не затрагиваются.</p>}
         <label className="block">
-          <span className="mb-1 block text-sm font-semibold text-white/70">Название</span>
-          <input value={titleV} onChange={(e) => setTitle(e.target.value)} placeholder={demo ? 'Демо IT-вече' : 'IT-вече'} className="w-full rounded-2xl border border-white/15 bg-ink-900 px-4 py-3" />
+          <span className="mb-1 block text-sm font-semibold text-ice/85">Название</span>
+          <input
+            value={titleV}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={demo ? 'Демо ИТ-вече' : 'ИТ-вече'}
+            className="w-full rounded-2xl border border-line bg-ink-900 px-4 py-3"
+          />
         </label>
         <label className="block">
-          <span className="mb-1 block text-sm font-semibold text-white/70">Ожидаемое число участников</span>
-          <input type="number" min={1} max={1000} value={expected} onChange={(e) => setExpected(e.target.value)} className="w-full rounded-2xl border border-white/15 bg-ink-900 px-4 py-3" />
+          <span className="mb-1 block text-sm font-semibold text-ice/85">Ожидаемое число участников</span>
+          <input
+            type="number"
+            min={1}
+            max={1000}
+            value={expected}
+            onChange={(e) => setExpected(e.target.value)}
+            className="w-full rounded-2xl border border-line bg-ink-900 px-4 py-3"
+          />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-sm font-semibold text-ice/85">Вопрос повестки</span>
+          <textarea
+            value={agenda}
+            onChange={(e) => setAgenda(e.target.value)}
+            maxLength={300}
+            rows={2}
+            className="w-full rounded-2xl border border-line bg-ink-900 px-4 py-3"
+          />
+          <span className="mt-1 block text-xs text-muted">Показывается вместе с вариантами ответа до начала голосования.</span>
         </label>
         <label className="flex items-start gap-3">
-          <input type="checkbox" checked={codes} onChange={(e) => setCodes(e.target.checked)} className="mt-1 h-5 w-5 accent-white" />
+          <input type="checkbox" checked={live} onChange={(e) => setLive(e.target.checked)} className="mt-1 h-5 w-5 accent-[#00DFFF]" />
+          <span className="text-sm">
+            <span className="font-semibold">Голоса в реальном времени</span>
+            <span className="block text-muted">
+              Распределение видно во время тура на экране зала, у организатора и у проголосовавших. Можно изменить позже.
+            </span>
+          </span>
+        </label>
+        <label className="flex items-start gap-3">
+          <input type="checkbox" checked={codes} onChange={(e) => setCodes(e.target.checked)} className="mt-1 h-5 w-5 accent-[#00DFFF]" />
           <span className="text-sm">
             <span className="font-semibold">Вход по одноразовым кодам</span>
-            <span className="block text-white/60">Строже ограничивает повторное голосование с нескольких устройств. Коды не привязаны к именам.</span>
+            <span className="block text-muted">Строже ограничивает повторное голосование с нескольких устройств. Коды не привязаны к именам.</span>
           </span>
         </label>
         {error && (
-          <p role="alert" className="text-sm text-coral-soft">
+          <p role="alert" className="text-sm text-danger-soft">
             {error}
           </p>
         )}
@@ -997,7 +1289,7 @@ function ExpectedEditor({ value, onSave, disabled }: { value: number | null; onS
       }}
     >
       <label className="text-sm">
-        <span className="mb-1 block text-white/55">Ожидаем участников</span>
+        <span className="mb-1 block text-muted">Ожидаем участников</span>
         <input
           type="number"
           min={1}
@@ -1005,7 +1297,7 @@ function ExpectedEditor({ value, onSave, disabled }: { value: number | null; onS
           value={v}
           disabled={disabled}
           onChange={(e) => setV(e.target.value)}
-          className="w-28 rounded-xl border border-white/15 bg-ink-900 px-3 py-2.5"
+          className="w-28 rounded-xl border border-line bg-ink-900 px-3 py-2.5"
         />
       </label>
       {changed && (
@@ -1020,14 +1312,19 @@ function ExpectedEditor({ value, onSave, disabled }: { value: number | null; onS
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs uppercase tracking-wider text-white/45">{label}</dt>
+      <dt className="text-xs uppercase tracking-wider text-muted">{label}</dt>
       <dd className="mt-1 font-semibold">{value}</dd>
     </div>
   );
 }
 
 function SessionStatusBadge({ status }: { status: AdminState['session']['status'] }) {
-  const map = { draft: ['Готова', 'bg-white/10 text-white/80'], active: ['Идёт', 'bg-emerald/15 text-emerald'], decided: ['Решение принято', 'bg-electric/15 text-electric-soft'], archived: ['Архив', 'bg-white/5 text-white/50'] } as const;
+  const map = {
+    draft: ['Готова', 'bg-ink-800 text-ice/85'],
+    active: ['Идёт', 'bg-neon/15 text-neon'],
+    decided: ['Решение принято', 'bg-electric/15 text-electric-soft'],
+    archived: ['Архив', 'bg-ink-850/70 text-muted'],
+  } as const;
   const [label, cls] = map[status];
   return <span className={`rounded-full px-3 py-1 text-xs font-semibold ${cls}`}>{label}</span>;
 }
@@ -1037,6 +1334,9 @@ function roundStatusText(s: AdminRound['status']) {
 }
 
 function time(iso: string) {
-  return new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  return new Date(iso).toLocaleTimeString('ru-RU', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
 }
-

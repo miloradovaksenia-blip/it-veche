@@ -1,17 +1,25 @@
 @import '@fontsource/unbounded/400.css';
 @import '@fontsource/unbounded/600.css';
 @import '@fontsource/unbounded/800.css';
+@import '@fontsource/unbounded/900.css';
 @import '@fontsource-variable/manrope';
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* STEEL NEON — индустриальный неон. Цвета: см. client/tailwind.config.js */
 :root {
   color-scheme: dark;
-  --coral: 255 111 94;
-  --blue: 61 139 255;
-  --emerald: 46 216 163;
+  --base: #050d1d;
+  --surface: #071b36;
+  --elevated: #0b2547;
+  --electric: #176bff;
+  --neon: #00dfff;
+  --steel: #c6d7eb;
+  --ice: #f5faff;
+  --muted: #8ca9c5;
+  --line: #244d78;
 }
 
 html,
@@ -21,51 +29,153 @@ body,
 }
 
 body {
-  @apply bg-ink-900 font-sans text-white antialiased;
+  @apply font-sans text-ice antialiased;
+  background: linear-gradient(180deg, #050d1d 0%, #071b36 100%) fixed;
+  background-color: #050d1d;
   -webkit-tap-highlight-color: transparent;
   text-rendering: optimizeLegibility;
 }
 
-/* Видимые фокус-состояния для клавиатурной навигации. */
+/* Отчётливое голубое кольцо фокуса. */
 :focus-visible {
-  outline: 3px solid #ffffff;
+  outline: 2px solid var(--neon);
   outline-offset: 3px;
-  border-radius: 12px;
+  border-radius: 14px;
+  box-shadow: 0 0 0 6px rgb(0 223 255 / 0.18);
 }
 
+/* Панель: navy 80%, умеренный blur, тонкая рамка. */
 .glass {
-  background: linear-gradient(160deg, rgb(255 255 255 / 0.075), rgb(255 255 255 / 0.025));
-  border: 1px solid rgb(255 255 255 / 0.1);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  backdrop-filter: blur(18px) saturate(140%);
+  background: rgb(7 27 54 / 0.8);
+  border: 1px solid var(--line);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 }
 
-.text-gradient {
-  background: linear-gradient(100deg, #ff8a7a 0%, #ffffff 35%, #8fbcff 65%, #63e6bd 100%);
+.panel-elevated {
+  background: linear-gradient(180deg, rgb(11 37 71 / 0.92), rgb(7 27 54 / 0.92));
+  border: 1px solid var(--line);
+}
+
+/* Главный металлический титул: хром, bevel, тонкий неоновый обвод. */
+.metal-title {
+  font-family: Unbounded, system-ui, sans-serif;
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+  background: linear-gradient(180deg, #ffffff 0%, #e7f4ff 18%, #91b7d9 46%, #e7f4ff 58%, #54789e 82%, #d7e8f7 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgb(0 223 255 / 0.55);
+  filter: drop-shadow(0 2px 0 #1b3f6b) drop-shadow(0 6px 0 #0b2547) drop-shadow(0 0 18px rgb(0 223 255 / 0.35)) drop-shadow(0 0 48px rgb(23 107 255 / 0.35));
+}
+
+/* Облегчённый титул для телефона. */
+.metal-title-lite {
+  font-family: Unbounded, system-ui, sans-serif;
+  font-weight: 900;
+  line-height: 0.95;
+  background: linear-gradient(130deg, #f5faff 0%, #91b7d9 30%, #e7f4ff 54%, #54789e 78%, #d7e8f7 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 12px rgb(0 223 255 / 0.25));
+}
+
+.metal-text {
+  background: linear-gradient(130deg, #f5faff 0%, #91b7d9 30%, #e7f4ff 54%, #54789e 78%, #d7e8f7 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-.grid-bg {
-  background-image: linear-gradient(rgb(255 255 255 / 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 0.035) 1px, transparent 1px);
-  background-size: 56px 56px;
-  -webkit-mask-image: radial-gradient(ellipse at 50% 40%, black 30%, transparent 75%);
-  mask-image: radial-gradient(ellipse at 50% 40%, black 30%, transparent 75%);
+.btn-primary {
+  background: linear-gradient(100deg, #176bff 0%, #168cff 55%, #00dfff 100%);
+  color: #fff;
+  box-shadow: 0 10px 30px -10px rgb(23 107 255 / 0.7);
+}
+.btn-primary:hover:not(:disabled) {
+  box-shadow:
+    0 0 10px rgb(0 223 255 / 0.35),
+    0 0 28px rgb(23 107 255 / 0.4),
+    0 10px 30px -10px rgb(23 107 255 / 0.7);
+}
+.btn-primary:disabled {
+  background: rgb(36 77 120 / 0.55);
+  color: rgb(245 250 255 / 0.5);
+  box-shadow: none;
 }
 
-@keyframes drift {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(3%, -4%, 0) scale(1.06); }
+.btn-secondary {
+  background: rgb(7 27 54 / 0.6);
+  border: 1px solid rgb(0 223 255 / 0.35);
+  color: var(--ice);
 }
-.orb { animation: drift 18s ease-in-out infinite; }
-.orb-2 { animation-delay: -6s; }
-.orb-3 { animation-delay: -12s; }
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--neon);
+  box-shadow: 0 0 10px rgb(0 223 255 / 0.25);
+}
+
+/* Тонкая световая линия с размытым дублем. */
+.light-line {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--neon), transparent);
+  box-shadow: 0 0 8px rgb(0 223 255 / 0.6);
+}
+
+/* Постер-карточка: рамка cyan + мягкий световой sweep на hover. */
+.poster {
+  border: 1px solid var(--line);
+  transition:
+    transform 240ms ease,
+    border-color 240ms ease,
+    box-shadow 240ms ease;
+}
+.poster .poster-art {
+  transition: transform 300ms ease;
+}
+@media (hover: hover) {
+  .poster:hover {
+    transform: translateY(-3px);
+    border-color: var(--neon);
+    box-shadow:
+      0 0 10px rgb(0 223 255 / 0.25),
+      0 0 28px rgb(23 107 255 / 0.18);
+  }
+  .poster:hover .poster-art {
+    transform: scale(1.03);
+  }
+}
+.poster-active {
+  border-color: var(--neon) !important;
+  box-shadow:
+    0 0 10px rgb(0 223 255 / 0.35),
+    0 0 28px rgb(23 107 255 / 0.24);
+}
+
+@keyframes arc-breathe {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.arc-glow {
+  animation: arc-breathe 6s ease-in-out infinite;
+}
 
 @keyframes pulse-ring {
-  0% { transform: scale(0.85); opacity: 0.7; }
-  100% { transform: scale(1.6); opacity: 0; }
+  0% {
+    transform: scale(0.85);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
 }
 .pulse-dot::after {
   content: '';
@@ -76,12 +186,37 @@ body {
   animation: pulse-ring 1.8s ease-out infinite;
 }
 
+/* На телефоне — меньше blur и свечения. */
+@media (max-width: 640px) {
+  .glass {
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .orb, .pulse-dot::after { animation: none !important; }
-  *, *::before, *::after { transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+  .arc-glow,
+  .pulse-dot::after {
+    animation: none !important;
+  }
+  .poster,
+  .poster .poster-art {
+    transition: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @media print {
-  body { background: #fff; color: #000; }
-  .no-print { display: none !important; }
+  body {
+    background: #fff;
+    color: #000;
+  }
+  .no-print {
+    display: none !important;
+  }
 }

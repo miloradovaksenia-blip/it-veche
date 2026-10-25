@@ -165,7 +165,11 @@ export function createApp(db: Db, config: Config): AppContext {
 
   admin.patch('/sessions/:id', async (req, res) => {
     await service.updateSession(req.params.id, req.body ?? {});
-    await act(req, 'session_updated', req.params.id, null, { expectedParticipants: req.body?.expectedParticipants });
+    await act(req, 'session_updated', req.params.id, null, {
+      expectedParticipants: req.body?.expectedParticipants,
+      agenda: req.body?.agenda === undefined ? undefined : 'changed',
+      liveResults: req.body?.liveResults,
+    });
     res.json(await service.adminState(req.params.id));
   });
 
@@ -239,8 +243,9 @@ export function createApp(db: Db, config: Config): AppContext {
   });
 
   admin.delete('/sessions/:id', async (req, res) => {
-    await service.deleteDemo(req.params.id);
-    await service.audit('demo_deleted', null, null, { sessionId: req.params.id }, service.hashIp(req.ip));
+    await service.deleteSession(req.params.id);
+    await service.audit('session_deleted', null, null, { sessionId: req.params.id }, service.hashIp(req.ip));
+    hub.notify(req.params.id); // открытые экраны и телефоны узнают, что сессии больше нет
     res.json({ ok: true });
   });
 

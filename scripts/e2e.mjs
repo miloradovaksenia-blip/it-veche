@@ -69,7 +69,9 @@ try {
   const hallCtx = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
   const hall = await hallCtx.newPage();
   await hall.goto(`${BASE}/hall/${slug}`);
-  await hall.getByText('Будущее цифровых 15 минут').waitFor();
+  await hall.getByText('Будущее цифровых 15 минут', { exact: false }).waitFor();
+  await hall.getByText('Какой формат «цифровых 15 минут» выбираем дальше?').waitFor();
+  check('экран зала показывает повестку до старта', true);
   await sleep(1500);
   await shot(hall, '01-hall-intro');
 
@@ -78,6 +80,8 @@ try {
   const phone = await phoneCtx.newPage();
   await phone.goto(`${BASE}/s/${slug}`);
   await phone.getByText('Голосование скоро начнётся', { exact: false }).waitFor();
+  await phone.getByText('Какой формат «цифровых 15 минут» выбираем дальше?').waitFor();
+  check('телефон показывает повестку и варианты до старта', (await phone.getByRole('article').count()) === 3);
   await shot(phone, '10-phone-before-start');
 
   // Второй телефон загрузит форму, а проголосовать попытается после закрытия тура.
@@ -124,7 +128,9 @@ try {
   const r1 = st.round.id;
   for (const [opt, n] of [['freedom', 3], ['navigator', 4], ['relay', 3]]) for (let i = 0; i < n; i++) await apiVote(slug, r1, opt);
   st = await publicState(slug);
-  check('счётчик: 12 голосов, распределение скрыто', st.voteCount === 12 && st.results.length === 0, `voteCount=${st.voteCount}`);
+  check('счётчик: 12 голосов, итоги тура не опубликованы', st.voteCount === 12 && st.results.length === 0, `voteCount=${st.voteCount}`);
+  check('живое распределение доступно во время тура', st.live?.total === 12 && st.live.counts.relay === 4, JSON.stringify(st.live?.counts));
+  await hall.getByText('Голоса в реальном времени').waitFor();
   await hall.getByText('Голосование идёт').waitFor();
   await hall.locator('text=12').first().waitFor({ timeout: 5000 });
   check('экран зала обновил счётчик в реальном времени', true);
@@ -136,6 +142,8 @@ try {
   await phone.reload();
   await phone.getByText('Вы уже проголосовали').waitFor();
   check('повторное открытие показывает «Вы уже проголосовали»', true);
+  await phone.getByText('Голоса в реальном времени').waitFor();
+  check('проголосовавший участник видит распределение в реальном времени', true);
   await shot(phone, '16-phone-already-voted');
 
   // Опоздавший выбирает, но тур закрывают до отправки.
@@ -157,7 +165,7 @@ try {
   check('после закрытия публичные результаты всё ещё скрыты', (await publicState(slug)).results.length === 0);
 
   await admin.getByRole('button', { name: 'Показать результаты' }).click();
-  await hall.getByText('IT-вече завершено').waitFor();
+  await hall.getByText('ИТ-вече завершено').waitFor();
   await sleep(4200);
   await shot(hall, '03-hall-results-round1');
   await phone.getByText('Абсолютного большинства нет').waitFor();
@@ -234,6 +242,13 @@ try {
   await shot(admin, '09-admin-demo-tiebreak');
   const realAfter = await publicState(slug);
   check('демо не затронуло реальную сессию', realAfter.results.length === 2 && realAfter.decision.optionId === 'relay');
+  // Удаление вече из админки
+  const demoId = (await (await adminCtx.request.get(`${BASE}/api/admin/sessions`)).json()).sessions.find((x) => x.isDemo).id;
+  await admin.getByRole('button', { name: 'Удалить вече' }).click();
+  await admin.getByRole('button', { name: 'Удалить навсегда' }).click();
+  await sleep(800);
+  const left = (await (await adminCtx.request.get(`${BASE}/api/admin/sessions`)).json()).sessions;
+  check('сессия удалена из админки', !left.some((x) => x.id === demoId) && left.some((x) => x.slug === slug));
   check('корневая ссылка ведёт на реальную сессию', (await (await fetch(`${BASE}/api/current`)).json()).slug === slug);
 
   // Доступ без входа

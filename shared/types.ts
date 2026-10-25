@@ -17,6 +17,13 @@ export interface PublicRoundResult {
   publishedAt: string;
 }
 
+export interface LiveDistribution {
+  roundId: string;
+  counts: Record<string, number>;
+  percents: Record<string, number>;
+  total: number;
+}
+
 export interface PublicRound {
   id: string;
   number: number;
@@ -43,7 +50,13 @@ export interface PublicState {
     isDemo: boolean;
     accessMode: AccessMode;
     expectedParticipants: number | null;
+    /** Вопрос, вынесенный на вече. */
+    agenda: string;
+    /** Показывать распределение голосов в реальном времени. */
+    liveResults: boolean;
   };
+  /** Текущее распределение голосов — только при включённом liveResults и до публикации итогов тура. */
+  live: LiveDistribution | null;
   round: PublicRound | null;
   /** Число принятых голосов в текущем туре (без распределения). */
   voteCount: number;

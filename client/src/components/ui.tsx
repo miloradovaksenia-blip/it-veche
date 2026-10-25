@@ -4,39 +4,84 @@ import { Compass, Feather, Users, WifiOff, Loader2 } from 'lucide-react';
 import QRCode from 'qrcode';
 import type { OptionId } from '../../../shared/options';
 import type { Connection } from '../lib/live';
+import { IndustrialScene } from './Scene';
 
-export function Backdrop({ intensity = 1 }: { intensity?: number }) {
+/**
+ * Фон STEEL NEON: navy-градиент, мягкое синее свечение, тонкие световые линии.
+ * scene=true добавляет ночную индустриальную сцену (кадрируется под экран).
+ */
+export function Backdrop({ intensity = 1, scene = false }: { intensity?: number; scene?: boolean }) {
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-ink-900">
-      <div className="grid-bg absolute inset-0" />
       <div
-        className="orb absolute -left-[15%] -top-[20%] h-[65vmax] w-[65vmax] rounded-full blur-[120px]"
-        style={{ background: `radial-gradient(circle, rgb(255 111 94 / ${0.16 * intensity}), transparent 65%)` }}
+        className="absolute inset-0"
+        style={{
+          background: 'linear-gradient(180deg, #050D1D 0%, #071B36 100%)',
+        }}
+      />
+      {scene && (
+        <div className="absolute inset-x-0 bottom-0 h-[70vh] opacity-60">
+          <IndustrialScene className="h-full w-full" />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink-900 via-ink-900/40 to-ink-900" />
+        </div>
+      )}
+      <div
+        className="absolute -right-[20%] -top-[25%] h-[80vmax] w-[80vmax] rounded-full"
+        style={{
+          background: `radial-gradient(circle, rgb(23 107 255 / ${0.16 * intensity}), transparent 60%)`,
+        }}
       />
       <div
-        className="orb orb-2 absolute -right-[20%] top-[5%] h-[70vmax] w-[70vmax] rounded-full blur-[120px]"
-        style={{ background: `radial-gradient(circle, rgb(61 139 255 / ${0.18 * intensity}), transparent 65%)` }}
+        className="absolute -left-[30%] bottom-[-40%] h-[70vmax] w-[70vmax] rounded-full"
+        style={{
+          background: `radial-gradient(circle, rgb(0 223 255 / ${0.06 * intensity}), transparent 60%)`,
+        }}
       />
-      <div
-        className="orb orb-3 absolute -bottom-[35%] left-[20%] h-[65vmax] w-[65vmax] rounded-full blur-[120px]"
-        style={{ background: `radial-gradient(circle, rgb(46 216 163 / ${0.14 * intensity}), transparent 65%)` }}
-      />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgb(7_8_12/0.7)_100%)]" />
+      <div className="light-line absolute left-[8%] right-[40%] top-[18%] opacity-20" />
+      <div className="light-line absolute left-[45%] right-[5%] top-[62%] opacity-10" />
     </div>
   );
 }
 
+/**
+ * Знак события «ИТ ВЕЧЕ». Если в client/public/brand/logo.svg положить официальный
+ * логотип компании, он появится слева (файл в проект не входит).
+ */
 export function Logo({ size = 'md' }: { size?: 'sm' | 'md' }) {
-  const dot = size === 'sm' ? 'h-2 w-2' : 'h-2.5 w-2.5';
+  const [brand, setBrand] = useState(true);
   return (
-    <div className="flex items-center gap-2.5">
-      <div className="flex items-end gap-1" aria-hidden>
-        <span className={`${dot} rounded-full bg-coral`} />
-        <span className={`${dot} mb-1.5 rounded-full bg-electric`} />
-        <span className={`${dot} rounded-full bg-emerald`} />
-      </div>
-      <span className={`font-display font-semibold tracking-[0.12em] ${size === 'sm' ? 'text-sm' : 'text-base'}`}>IT-ВЕЧЕ</span>
+    <div className="flex items-center gap-3">
+      {brand && (
+        <>
+          <img src="/brand/logo.svg" alt="" className={size === 'sm' ? 'h-5' : 'h-7'} onError={() => setBrand(false)} />
+          <span className="h-5 w-px bg-line" aria-hidden />
+        </>
+      )}
+      <span className="relative flex items-center gap-2">
+        <span aria-hidden className="relative inline-flex h-2.5 w-2.5 items-center justify-center">
+          <span className="absolute h-2.5 w-2.5 rounded-full bg-neon shadow-neon" />
+        </span>
+        <span className={`font-display font-extrabold tracking-[0.14em] ${size === 'sm' ? 'text-sm' : 'text-base'}`}>
+          <span className="metal-text">ИТ ВЕЧЕ</span>
+        </span>
+      </span>
     </div>
+  );
+}
+
+/** Металлический заголовок события в две строки. */
+export function MetalTitle({ className = '', lite = false, inline = false }: { className?: string; lite?: boolean; inline?: boolean }) {
+  return (
+    <h1 className={`${lite ? 'metal-title-lite' : 'metal-title'} uppercase ${className}`}>
+      {inline ? (
+        'ИТ ВЕЧЕ'
+      ) : (
+        <>
+          <span className="block">ИТ</span>
+          <span className="block">ВЕЧЕ</span>
+        </>
+      )}
+    </h1>
   );
 }
 
@@ -47,20 +92,20 @@ export function OptionIcon({ id, className }: { id: OptionId; className?: string
 
 export function DemoBadge() {
   return (
-    <span className="inline-flex items-center rounded-full border border-amber-300/50 bg-amber-300/15 px-3 py-1 font-display text-xs font-semibold tracking-[0.2em] text-amber-200">
+    <span className="inline-flex items-center rounded-full border border-amber-300/50 bg-amber-300/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-amber-200">
       DEMO
     </span>
   );
 }
 
 export function StatusPill({ tone, children }: { tone: 'live' | 'idle' | 'done'; children: ReactNode }) {
-  const color = tone === 'live' ? 'text-emerald' : tone === 'done' ? 'text-electric-soft' : 'text-white/60';
+  const color = tone === 'live' ? 'text-neon' : tone === 'done' ? 'text-electric-soft' : 'text-muted';
   return (
-    <span className="glass inline-flex items-center gap-2.5 rounded-full px-4 py-2 text-sm font-semibold">
+    <span className="glass inline-flex items-center gap-2.5 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.14em]">
       <span className={`pulse-dot relative inline-block h-2.5 w-2.5 rounded-full ${color} ${tone === 'live' ? '' : '[&::after]:hidden'}`}>
         <span className="absolute inset-0 rounded-full bg-current" />
       </span>
-      <span className="text-white/90">{children}</span>
+      <span className="text-ice">{children}</span>
     </span>
   );
 }
@@ -68,7 +113,12 @@ export function StatusPill({ tone, children }: { tone: 'live' | 'idle' | 'done';
 export function QrCode({ value, className, label, size }: { value: string; className?: string; label?: string; size?: number }) {
   const [svg, setSvg] = useState('');
   useEffect(() => {
-    QRCode.toString(value, { type: 'svg', margin: 1, errorCorrectionLevel: 'M', color: { dark: '#0B0D12', light: '#FFFFFF' } })
+    QRCode.toString(value, {
+      type: 'svg',
+      margin: 1,
+      errorCorrectionLevel: 'M',
+      color: { dark: '#0B0D12', light: '#FFFFFF' },
+    })
       .then(setSvg)
       .catch(() => setSvg(''));
   }, [value]);
@@ -95,7 +145,7 @@ export function ConnectionBanner({ connection }: { connection: Connection }) {
           exit={{ y: -40, opacity: 0 }}
           transition={{ duration: 0.25 }}
           className={`fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-2 px-4 py-2 text-center text-sm font-semibold ${
-            connection === 'offline' ? 'bg-coral-deep text-white' : 'bg-amber-400 text-ink-900'
+            connection === 'offline' ? 'bg-danger-deep text-white' : 'bg-amber-300 text-ink-900'
           }`}
         >
           {connection === 'offline' ? <WifiOff className="h-4 w-4" aria-hidden /> : <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
@@ -113,18 +163,21 @@ export function Button({
   children,
   loading,
   ...rest
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; loading?: boolean }) {
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: ButtonVariant;
+  loading?: boolean;
+}) {
   const styles: Record<ButtonVariant, string> = {
-    primary: 'bg-white text-ink-900 hover:bg-white/90 disabled:bg-white/25 disabled:text-white/50',
-    secondary: 'glass text-white hover:bg-white/10 disabled:opacity-40',
-    danger: 'bg-coral-deep text-white hover:bg-coral disabled:opacity-40',
-    ghost: 'text-white/70 hover:text-white hover:bg-white/5 disabled:opacity-40',
+    primary: 'btn-primary rounded-full',
+    secondary: 'btn-secondary rounded-full disabled:opacity-40',
+    danger: 'rounded-full border border-danger/60 bg-danger/15 text-danger-soft hover:bg-danger/25 disabled:opacity-40',
+    ghost: 'rounded-full text-muted hover:text-ice hover:bg-ink-800 disabled:opacity-40',
   };
   return (
     <button
       {...rest}
       disabled={rest.disabled || loading}
-      className={`inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl px-5 py-3 font-semibold transition-[background,transform,opacity] duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:active:scale-100 ${styles[variant]} ${className}`}
+      className={`inline-flex min-h-[52px] items-center justify-center gap-2 px-6 py-3 font-bold tracking-wide transition-[background,transform,opacity,box-shadow,border-color] duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:active:scale-100 ${styles[variant]} ${className}`}
     >
       {loading && <Loader2 className="h-5 w-5 animate-spin" aria-hidden />}
       {children}
@@ -133,7 +186,19 @@ export function Button({
 }
 
 /** Модальное окно подтверждения: Esc закрывает, фокус остаётся внутри. */
-export function Modal({ open, onClose, title, children, labelledBy = 'modal-title' }: { open: boolean; onClose: () => void; title: string; children: ReactNode; labelledBy?: string }) {
+export function Modal({
+  open,
+  onClose,
+  title,
+  children,
+  labelledBy = 'modal-title',
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: ReactNode;
+  labelledBy?: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
@@ -166,8 +231,14 @@ export function Modal({ open, onClose, title, children, labelledBy = 'modal-titl
   return (
     <AnimatePresence>
       {open && (
-        <motion.div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-          <div className="absolute inset-0 bg-ink-950/75 backdrop-blur-sm" onClick={onClose} aria-hidden />
+        <motion.div
+          className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <div className="absolute inset-0 bg-ink-950/80 backdrop-blur-sm" onClick={onClose} aria-hidden />
           <motion.div
             ref={ref}
             role="dialog"
@@ -177,7 +248,7 @@ export function Modal({ open, onClose, title, children, labelledBy = 'modal-titl
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 40, opacity: 0 }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="relative m-0 w-full max-w-lg rounded-t-3xl border border-white/10 bg-ink-850 p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl sm:m-4 sm:rounded-3xl"
+            className="relative m-0 w-full max-w-lg rounded-t-3xl border border-line bg-ink-850 p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl sm:m-4 sm:rounded-3xl"
           >
             <h2 id={labelledBy} className="font-display text-xl font-semibold leading-snug">
               {title}
@@ -192,7 +263,7 @@ export function Modal({ open, onClose, title, children, labelledBy = 'modal-titl
 
 export function Spinner({ label = 'Загрузка…' }: { label?: string }) {
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-white/60" role="status">
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-muted" role="status">
       <Loader2 className="h-8 w-8 animate-spin" aria-hidden />
       <span>{label}</span>
     </div>

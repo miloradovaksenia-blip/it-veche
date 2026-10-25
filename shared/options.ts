@@ -54,3 +54,6 @@ export function getOption(id: string): VoteOption | undefined {
 export function isOptionId(id: unknown): id is OptionId {
   return typeof id === 'string' && OPTION_IDS.includes(id as OptionId);
 }
+
+/** Вопрос повестки по умолчанию (организатор может изменить). */
+export const DEFAULT_AGENDA = 'Какой формат «цифровых 15 минут» выбираем дальше?';

@@ -177,6 +177,57 @@ describe('голосование', () => {
   });
 });
 
+describe('повестка, живое распределение и удаление', () => {
+  const adminPatch = (path: string, body: object) => request(ctx.app).patch(path).set('Cookie', cookie).set('X-Veche-Admin', '1').send(body);
+  const adminDelete = (path: string) => request(ctx.app).delete(path).set('Cookie', cookie).set('X-Veche-Admin', '1');
+
+  it('повестка видна до старта и редактируется организатором', async () => {
+    const { id, slug } = await createSession({ agenda: 'Что делаем с цифровыми 15 минутами?' });
+    let pub = (await request(ctx.app).get(`/api/sessions/${slug}/state`)).body;
+    expect(pub.session.agenda).toBe('Что делаем с цифровыми 15 минутами?');
+    expect(pub.round).toBeNull();
+    expect((await adminPatch(`/api/admin/sessions/${id}`, { agenda: 'Новый вопрос' })).status).toBe(200);
+    pub = (await request(ctx.app).get(`/api/sessions/${slug}/state`)).body;
+    expect(pub.session.agenda).toBe('Новый вопрос');
+    expect((await adminPatch(`/api/admin/sessions/${id}`, { agenda: 'x'.repeat(301) })).status).toBe(400);
+    const def = await createSession({ isDemo: true });
+    expect((await request(ctx.app).get(`/api/sessions/${def.slug}/state`)).body.session.agenda).toContain('цифровых 15 минут');
+  });
+
+  it('при включённом режиме распределение видно всем во время тура', async () => {
+    const { id, slug } = await createSession({ liveResults: true });
+    const roundId = await openRound(id);
+    await castMany(slug, roundId, { freedom: 1, navigator: 2, relay: 1 });
+    const pub = (await request(ctx.app).get(`/api/sessions/${slug}/state`)).body;
+    expect(pub.session.liveResults).toBe(true);
+    expect(pub.live).toEqual({ roundId, counts: { freedom: 1, navigator: 2, relay: 1 }, percents: { freedom: 25, navigator: 50, relay: 25 }, total: 4 });
+    expect((await adminGet(`/api/admin/sessions/${id}`)).body.rounds[0].counts).toEqual({ freedom: 1, navigator: 2, relay: 1 });
+    await closeAndPublish(roundId);
+    expect((await request(ctx.app).get(`/api/sessions/${slug}/state`)).body.live).toBeNull();
+  });
+
+  it('режим можно выключить — распределение снова скрыто', async () => {
+    const { id, slug } = await createSession({ liveResults: true });
+    const roundId = await openRound(id);
+    await castMany(slug, roundId, { relay: 2 });
+    await adminPatch(`/api/admin/sessions/${id}`, { liveResults: false });
+    expect((await request(ctx.app).get(`/api/sessions/${slug}/state`)).body.live).toBeNull();
+    expect((await adminGet(`/api/admin/sessions/${id}`)).body.rounds[0].counts).toBeNull();
+  });
+
+  it('организатор может удалить любую сессию вместе с голосами', async () => {
+    const { id, slug } = await createSession();
+    const roundId = await openRound(id);
+    await castMany(slug, roundId, { relay: 2 });
+    expect((await request(ctx.app).delete(`/api/admin/sessions/${id}`).set('X-Veche-Admin', '1')).status).toBe(401);
+    expect((await adminDelete(`/api/admin/sessions/${id}`)).status).toBe(200);
+    expect((await request(ctx.app).get(`/api/sessions/${slug}/state`)).status).toBe(404);
+    expect((await adminGet('/api/admin/sessions')).body.sessions.find((s: { id: string }) => s.id === id)).toBeUndefined();
+    expect(await db.get('SELECT 1 AS x FROM votes WHERE round_id = ?', [roundId])).toBeUndefined();
+    expect((await adminDelete(`/api/admin/sessions/${id}`)).status).toBe(404);
+  });
+});
+
 describe('скрытие результатов', () => {
   it('публичное состояние не раскрывает распределение до публикации', async () => {
     const { id, slug } = await createSession();
@@ -186,6 +237,7 @@ describe('скрытие результатов', () => {
     expect(open.voteCount).toBe(5);
     expect(open.results).toEqual([]);
     expect(JSON.stringify(open)).not.toContain('counts');
+    expect(open.live).toBeNull();
 
     // Организатор тоже не видит распределение, пока тур открыт.
     expect((await adminGet(`/api/admin/sessions/${id}`)).body.rounds[0].counts).toBeNull();
