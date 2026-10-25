@@ -1,0 +1,6 @@
+node_modules
+dist
+data
+.env
+screenshots/*.png
+!screenshots/README.md
