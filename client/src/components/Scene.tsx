@@ -196,131 +196,13 @@ export function IndustrialScene({ className = '', arc = true, seed = 7 }: { clas
   );
 }
 
-/** Сюжетные иллюстрации для трёх вариантов: различаются сюжетом, не палитрой. */
+/** Фото-иллюстрации вариантов (из дизайн-референса, в холодной гамме). */
+export const OPTION_PHOTOS: Record<'freedom' | 'navigator' | 'relay', string> = {
+  freedom: '/img/eng.webp',
+  navigator: '/img/arm.webp',
+  relay: '/img/team.webp',
+};
+
 export function OptionArt({ id, className = '' }: { id: 'freedom' | 'navigator' | 'relay'; className?: string }) {
-  const uid = useId().replace(/:/g, '');
-  return (
-    <svg className={className} viewBox="0 0 400 240" preserveAspectRatio="xMidYMid slice" aria-hidden>
-      <defs>
-        <linearGradient id={`bg${uid}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#0B2547" />
-          <stop offset="1" stopColor="#050D1D" />
-        </linearGradient>
-        <radialGradient id={`glow${uid}`} cx="0.5" cy="0.45" r="0.55">
-          <stop offset="0" stopColor="#176BFF" stopOpacity="0.55" />
-          <stop offset="1" stopColor="#176BFF" stopOpacity="0" />
-        </radialGradient>
-        <linearGradient id={`fig${uid}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#153B6B" />
-          <stop offset="1" stopColor="#06132A" />
-        </linearGradient>
-        <filter id={`b${uid}`}>
-          <feGaussianBlur stdDeviation="3" />
-        </filter>
-      </defs>
-      <rect width="400" height="240" fill={`url(#bg${uid})`} />
-      <rect width="400" height="240" fill={`url(#glow${uid})`} />
-      {/* Каркас цеха на фоне */}
-      <g stroke="#1B4272" strokeWidth="2" opacity="0.8">
-        {[30, 90, 150, 250, 310, 370].map((x) => (
-          <line key={x} x1={x} y1="20" x2={x} y2="240" />
-        ))}
-        <line x1="0" y1="44" x2="400" y2="44" />
-        <path d="M 0 44 L 60 14 L 120 44 L 180 14 L 240 44 L 300 14 L 360 44 L 400 24" fill="none" />
-      </g>
-      <g fill="#5C9BFF" opacity="0.6">
-        {[45, 105, 165, 265, 325].map((x) => (
-          <rect key={x} x={x} y="60" width="30" height="3" />
-        ))}
-      </g>
-
-      {id === 'freedom' && <Engineer uid={uid} />}
-      {id === 'navigator' && <RobotArm uid={uid} />}
-      {id === 'relay' && <Team uid={uid} />}
-    </svg>
-  );
-}
-
-/** 01 — инженер в каске с планшетом: самостоятельная работа с цифровыми инструментами. */
-function Engineer({ uid }: { uid: string }) {
-  return (
-    <g>
-      <rect x="230" y="120" width="60" height="40" rx="4" fill="#00DFFF" opacity="0.18" filter={`url(#b${uid})`} />
-      {/* Тело */}
-      <path d="M 120 240 C 122 190, 140 168, 176 160 L 226 160 C 262 168, 280 190, 284 240 Z" fill={`url(#fig${uid})`} />
-      <path d="M 120 240 C 122 190, 140 168, 176 160" fill="none" stroke="#00DFFF" strokeWidth="2" opacity="0.9" />
-      {/* Голова и каска */}
-      <ellipse cx="200" cy="128" rx="24" ry="28" fill="#0E2A4F" />
-      <path d="M 170 120 C 170 90, 230 90, 230 120 L 236 124 L 164 124 Z" fill="#C6D7EB" />
-      <path d="M 170 120 C 170 90, 230 90, 230 120" fill="none" stroke="#F5FAFF" strokeWidth="1.5" />
-      <rect x="196" y="98" width="8" height="20" rx="3" fill="#91B7D9" />
-      {/* Планшет */}
-      <g transform="rotate(-12 262 176)">
-        <rect x="236" y="160" width="54" height="36" rx="4" fill="#071B36" stroke="#00DFFF" strokeWidth="2" />
-        <rect x="242" y="166" width="20" height="3" fill="#7AEFFF" />
-        <rect x="242" y="173" width="36" height="3" fill="#5C9BFF" />
-        <rect x="242" y="180" width="28" height="3" fill="#5C9BFF" />
-      </g>
-      <path d="M 226 180 C 240 186, 248 186, 256 182" stroke="#153B6B" strokeWidth="12" strokeLinecap="round" fill="none" />
-    </g>
-  );
-}
-
-/** 02 — роботизированная рука и световое кольцо: эксперт показывает новые инструменты. */
-function RobotArm({ uid }: { uid: string }) {
-  return (
-    <g>
-      <circle cx="270" cy="92" r="34" fill="none" stroke="#00DFFF" strokeWidth="2" opacity="0.9" />
-      <circle cx="270" cy="92" r="34" fill="none" stroke="#00DFFF" strokeWidth="8" opacity="0.25" filter={`url(#b${uid})`} />
-      <circle cx="270" cy="92" r="46" fill="none" stroke="#5C9BFF" strokeWidth="1" strokeDasharray="4 6" opacity="0.7" />
-      {/* Основание */}
-      <rect x="70" y="200" width="90" height="40" rx="6" fill={`url(#fig${uid})`} stroke="#244D78" />
-      <rect x="92" y="186" width="46" height="18" rx="4" fill="#153B6B" />
-      {/* Сегменты */}
-      <g strokeLinecap="round">
-        <line x1="115" y1="190" x2="160" y2="110" stroke="#C6D7EB" strokeWidth="22" />
-        <line x1="115" y1="190" x2="160" y2="110" stroke="#54789E" strokeWidth="8" />
-        <line x1="160" y1="110" x2="236" y2="96" stroke="#C6D7EB" strokeWidth="16" />
-        <line x1="160" y1="110" x2="236" y2="96" stroke="#54789E" strokeWidth="5" />
-      </g>
-      <circle cx="115" cy="190" r="14" fill="#0B2547" stroke="#00DFFF" strokeWidth="2" />
-      <circle cx="160" cy="110" r="12" fill="#0B2547" stroke="#00DFFF" strokeWidth="2" />
-      <circle cx="236" cy="96" r="8" fill="#0B2547" stroke="#00DFFF" strokeWidth="2" />
-      {/* Захват */}
-      <path d="M 242 88 L 256 80 M 242 104 L 256 112" stroke="#E7F4FF" strokeWidth="4" strokeLinecap="round" />
-      <circle cx="270" cy="92" r="6" fill="#7AEFFF" />
-    </g>
-  );
-}
-
-/** 03 — команда специалистов передаёт светящуюся эстафету. */
-function Team({ uid }: { uid: string }) {
-  const people = [
-    { x: 80, s: 0.86 },
-    { x: 150, s: 1 },
-    { x: 250, s: 0.95 },
-    { x: 320, s: 0.84 },
-  ];
-  return (
-    <g>
-      <ellipse cx="200" cy="168" rx="30" ry="10" fill="#00DFFF" opacity="0.35" filter={`url(#b${uid})`} />
-      {people.map((p, i) => (
-        <g key={i} transform={`translate(${p.x} 240) scale(${p.s}) translate(0 -240)`}>
-          <path d="M -46 240 C -44 196, -30 178, 0 172 C 30 178, 44 196, 46 240 Z" fill={`url(#fig${uid})`} />
-          <path
-            d={i < 2 ? 'M -46 240 C -44 196, -30 178, 0 172' : 'M 0 172 C 30 178, 44 196, 46 240'}
-            fill="none"
-            stroke="#00DFFF"
-            strokeWidth="1.6"
-            opacity="0.8"
-          />
-          <ellipse cx="0" cy="146" rx="17" ry="20" fill="#0E2A4F" />
-          <path d="M -22 142 C -22 116, 22 116, 22 142 L 26 145 L -26 145 Z" fill={i === 1 || i === 2 ? '#C6D7EB' : '#54789E'} />
-        </g>
-      ))}
-      {/* Эстафета */}
-      <line x1="180" y1="170" x2="222" y2="166" stroke="#7AEFFF" strokeWidth="5" strokeLinecap="round" />
-      <line x1="180" y1="170" x2="222" y2="166" stroke="#00DFFF" strokeWidth="12" strokeLinecap="round" opacity="0.35" filter={`url(#b${uid})`} />
-    </g>
-  );
+  return <img src={OPTION_PHOTOS[id]} alt="" aria-hidden draggable={false} decoding="async" className={`object-cover ${className}`} />;
 }

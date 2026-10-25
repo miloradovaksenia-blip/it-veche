@@ -9,8 +9,8 @@ import { accentStyles } from '../lib/accent';
 import { outcomeDetail, outcomeHeadline, roundLabel } from '../lib/text';
 import { HallOptionCard } from '../components/OptionCard';
 import { HallBars, LiveBars } from '../components/Results';
-import { IndustrialScene, OptionArt } from '../components/Scene';
-import { Backdrop, ConnectionBanner, DemoBadge, Logo, MetalTitle, QrCode, Spinner, StatusPill } from '../components/ui';
+import { OptionArt } from '../components/Scene';
+import { Backdrop, ConnectionBanner, ChromeText, DemoBadge, HeroPhoto, Logo, MetalTitle, QrCode, Spinner, StatPanel, StatusPill } from '../components/ui';
 
 const W = 1920;
 const H = 1080;
@@ -81,23 +81,15 @@ export default function Hall() {
       <ConnectionBanner connection={connection} />
       <FullscreenHint />
       <Stage>
-        {/* Индустриальная сцена: справа на экране повестки, приглушённо — на остальных. Края растворяются маской. */}
-        <div
-          className={`pointer-events-none absolute transition-all duration-700 ${
-            phase === 'intro' ? 'right-0 top-0 h-[640px] w-[1150px] opacity-100' : 'inset-x-0 bottom-0 h-[760px] opacity-30'
-          }`}
-          style={{ maskImage: phase === 'intro' ? 'linear-gradient(to right, transparent 0%, #000 45%)' : undefined, WebkitMaskImage: phase === 'intro' ? 'linear-gradient(to right, transparent 0%, #000 45%)' : undefined }}
-        >
-          <div
-            className="h-full w-full"
-            style={{
-              maskImage: 'linear-gradient(to bottom, transparent 0%, #000 25%, #000 65%, transparent 100%)',
-              WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, #000 25%, #000 65%, transparent 100%)',
-            }}
-          >
-            <IndustrialScene className="h-full w-full" />
+        {/* Фото площадки с неоновой дугой: справа на экране повестки, приглушённо — фоном на остальных. */}
+        {phase === 'intro' ? (
+          <HeroPhoto className="right-0 top-0 h-[760px] w-[900px]" position="object-[center_12%]" wordsClass="text-[30px] !right-[5%] !top-[40%]" />
+        ) : (
+          <div aria-hidden className="pointer-events-none absolute inset-0 opacity-25">
+            <img src="/img/hero.webp" alt="" className="photo-fade-left absolute right-0 top-0 h-full w-[60%] object-cover object-top" />
+            <div className="absolute inset-0 bg-gradient-to-r from-ink-900 via-ink-900/40 to-transparent" />
           </div>
-        </div>
+        )}
 
         {/* Навигация */}
         <header className="absolute inset-x-0 top-0 z-10 flex h-[84px] items-center border-b border-line bg-ink-900/80 px-[72px] backdrop-blur-[14px]">
@@ -153,37 +145,42 @@ function HallStatus({ state, phase }: { state: PublicState; phase: Phase }) {
 function Intro({ state, voteUrl, shortUrl }: { state: PublicState; voteUrl: string; shortUrl: string }) {
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-start justify-between gap-12">
-        <div className="max-w-[1180px]">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}>
-            <MetalTitle inline className="text-[112px]" />
-          </motion.div>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.25, duration: 0.5 }}
-            className="mt-8 text-[18px] font-bold uppercase tracking-[0.3em] text-neon"
-          >
-            Повестка вече
-          </motion.p>
-          <motion.h2
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35, duration: 0.6 }}
-            className="mt-3 text-[52px] font-extrabold leading-[1.1] text-ice"
-          >
-            {state.session.agenda}
-          </motion.h2>
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5, duration: 0.5 }} className="mt-4 text-[24px] text-muted">
-            Будущее цифровых 15 минут. Ознакомьтесь со сценариями — голосование скоро начнётся.
-          </motion.p>
-        </div>
-        <QrPanel voteUrl={voteUrl} shortUrl={shortUrl} size={210} caption="Откройте на телефоне" />
+      <div className="relative max-w-[1060px]">
+        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}>
+          <MetalTitle bar className="text-[124px]" />
+        </motion.div>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.25, duration: 0.5 }}
+          className="mt-7 font-display text-[40px] font-black uppercase leading-none text-ice [text-shadow:0_2px_16px_rgb(5_13_29)]"
+        >
+          Твой голос. Наше будущее.
+        </motion.p>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4, duration: 0.5 }} className="mt-4 text-[22px] text-ice/90">
+          <span className="text-neon">Выбирай формат</span>, поддерживай коллег и определяй <span className="text-neon">будущее цифровых 15 минут</span> вместе с нами.
+        </motion.p>
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.6 }} className="mt-7">
+          <p className="text-[16px] font-bold uppercase tracking-[0.3em] text-neon">Повестка вече</p>
+          <h2 className="mt-2 text-[34px] font-extrabold leading-[1.15] text-ice">{state.session.agenda}</h2>
+        </motion.div>
       </div>
-      <div className="mt-auto grid h-[470px] grid-cols-3 gap-6">
+      <div className="mt-auto grid h-[372px] grid-cols-[1fr_1fr_1fr_300px] gap-6">
         {OPTIONS.map((o, i) => (
           <HallOptionCard key={o.id} option={o} index={i} />
         ))}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.55 }}
+          className="glass flex flex-col items-center justify-center rounded-[16px] p-5 text-center shadow-neon"
+        >
+          <QrCode value={voteUrl} size={210} className="rounded-xl" label={`QR-код для голосования: ${voteUrl}`} />
+          <p className="mt-4 flex items-center gap-2 text-[15px] font-bold uppercase tracking-[0.14em] text-neon">
+            Голосовать <ArrowRight className="h-5 w-5" aria-hidden />
+          </p>
+          <p className="mt-1 text-[17px] font-semibold text-ice">{shortUrl}</p>
+        </motion.div>
       </div>
     </div>
   );
@@ -206,23 +203,6 @@ function QrPanel({ voteUrl, shortUrl, size, caption }: { voteUrl: string; shortU
   );
 }
 
-/** Панель-консоль: равные ячейки, тонкие разделители, cyan-иконки, крупные цифры. */
-function Console({ cells }: { cells: { icon: ReactNode; value: ReactNode; label: string }[] }) {
-  return (
-    <div className="glass flex rounded-[18px]">
-      {cells.map((c, i) => (
-        <div key={i} className={`flex flex-1 items-center gap-5 px-7 py-5 ${i ? 'border-l border-line' : ''}`}>
-          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-neon/40 text-neon">{c.icon}</span>
-          <div className="min-w-0">
-            <div className="text-[34px] font-extrabold leading-none text-ice tabular-nums">{c.value}</div>
-            <div className="mt-2 text-[13px] font-semibold uppercase tracking-[0.14em] text-muted">{c.label}</div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function Voting({ state, voteUrl, shortUrl }: { state: PublicState; voteUrl: string; shortUrl: string }) {
   const round = state.round!;
   const expected = state.session.expectedParticipants;
@@ -233,7 +213,7 @@ function Voting({ state, voteUrl, shortUrl }: { state: PublicState; voteUrl: str
     <div className="flex h-full gap-14">
       <div className="flex min-w-0 flex-1 flex-col">
         <p className="text-[20px] font-bold uppercase tracking-[0.3em] text-neon">{roundLabel(round.type, round.number)}</p>
-        <h1 className="mt-3 font-display text-[84px] font-extrabold uppercase leading-[0.95] text-ice">Голосование идёт</h1>
+        <h1 className="mt-3 font-display text-[84px] font-black uppercase leading-[0.95] text-ice [text-shadow:0_0_30px_rgb(23_107_255_/_0.45)]">Голосование идёт</h1>
         <div className="mt-8 flex items-end gap-6">
           <span className="pb-3 text-[28px] text-muted">Голосов принято:</span>
           <AnimatePresence mode="popLayout">
@@ -243,10 +223,10 @@ function Voting({ state, voteUrl, shortUrl }: { state: PublicState; voteUrl: str
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: -30, opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="metal-text font-display text-[150px] font-black leading-[0.8] tabular-nums"
+              className="text-[150px] leading-[0.8] tabular-nums"
               aria-live="polite"
             >
-              {state.voteCount}
+              <ChromeText>{state.voteCount}</ChromeText>
             </motion.span>
           </AnimatePresence>
           {expected && <span className="pb-2 font-display text-[52px] font-semibold leading-none text-muted">из {expected}</span>}
@@ -289,7 +269,8 @@ function Voting({ state, voteUrl, shortUrl }: { state: PublicState; voteUrl: str
               })}
             </div>
           )}
-          <Console
+          <StatPanel
+            size="hall"
             cells={[
               {
                 icon: <Vote className={icon} strokeWidth={1.6} />,
@@ -450,7 +431,9 @@ function Decision({ state, voteUrl, shortUrl }: { state: PublicState; voteUrl: s
           </div>
           <div>
             <span className={`font-display text-[34px] font-extrabold ${a.text}`}>{o.number}</span>
-            <h1 className="metal-title-lite text-[84px] uppercase">{o.title}</h1>
+            <h1 className="text-[84px] leading-[0.95]">
+              <ChromeText>{o.title}</ChromeText>
+            </h1>
           </div>
         </motion.div>
         <motion.p

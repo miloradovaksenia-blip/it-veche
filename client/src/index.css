@@ -93,7 +93,13 @@ body {
 .btn-primary {
   background: linear-gradient(100deg, #176bff 0%, #168cff 55%, #00dfff 100%);
   color: #fff;
-  box-shadow: 0 10px 30px -10px rgb(23 107 255 / 0.7);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  box-shadow:
+    0 0 18px rgb(23 107 255 / 0.55),
+    0 10px 30px -10px rgb(23 107 255 / 0.8),
+    inset 0 1px 0 rgb(255 255 255 / 0.35);
 }
 .btn-primary:hover:not(:disabled) {
   box-shadow:
@@ -115,6 +121,89 @@ body {
 .btn-secondary:hover:not(:disabled) {
   border-color: var(--neon);
   box-shadow: 0 0 10px rgb(0 223 255 / 0.25);
+}
+
+/* Объёмный хромовый титул: задний слой даёт глубину и неоновый обвод, передний — полированный металл. */
+.chrome3d {
+  position: relative;
+  display: inline-block;
+  font-family: Unbounded, system-ui, sans-serif;
+  font-weight: 900;
+  line-height: 0.92;
+  letter-spacing: 0.005em;
+  text-transform: uppercase;
+}
+.chrome3d__back,
+.chrome3d__front {
+  display: block;
+}
+/* Обвод делаем тенями, а не text-stroke: у шрифта перекрывающиеся контуры, stroke рисует их внутри букв. */
+.chrome3d__back {
+  position: absolute;
+  inset: 0;
+  color: #0b2a57;
+  text-shadow:
+    0.014em 0 0 #5aa2ff,
+    -0.014em 0 0 #5aa2ff,
+    0 0.014em 0 #5aa2ff,
+    0 -0.014em 0 #5aa2ff,
+    0.01em 0.01em 0 #5aa2ff,
+    -0.01em -0.01em 0 #5aa2ff,
+    0.01em -0.01em 0 #5aa2ff,
+    -0.01em 0.01em 0 #5aa2ff,
+    0.02em 0.02em 0 #1d4f90,
+    0.028em 0.028em 0 #19457f,
+    0.036em 0.036em 0 #143b6e,
+    0.044em 0.044em 0 #10315e,
+    0.052em 0.052em 0 #0c284d,
+    0.06em 0.06em 0 #0a203f,
+    0 0 0.1em rgb(23 107 255 / 0.9),
+    0 0 0.25em rgb(0 160 255 / 0.5),
+    0 0 0.55em rgb(0 223 255 / 0.28);
+}
+.chrome3d__front {
+  position: relative;
+  color: transparent;
+}
+.chrome3d__front > span {
+  background: linear-gradient(
+    178deg,
+    #ffffff 0%,
+    #eaf3ff 14%,
+    #b3cde9 32%,
+    #5b7ca3 46%,
+    #34557d 49%,
+    #e3f0ff 52%,
+    #ffffff 58%,
+    #a4c2e3 76%,
+    #6f93bd 88%,
+    #d5e7fb 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Хромовая вертикальная планка слева от титула, как на референсе. */
+.chrome-bar {
+  display: inline-block;
+  width: 0.13em;
+  border-radius: 0.04em;
+  background: linear-gradient(180deg, #ffffff, #8fb2d8 40%, #e4f0ff 60%, #4f6f96);
+  box-shadow:
+    0 0 0 0.01em #4f9bff,
+    0 0 0.12em rgb(23 107 255 / 0.8),
+    0.03em 0.03em 0 #102e56;
+}
+
+/* Подложка фото: глубокий navy и виньетка, чтобы текст читался. */
+.photo-fade-left {
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 38%);
+  mask-image: linear-gradient(to right, transparent 0%, #000 38%);
+}
+.photo-fade-bottom {
+  -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
 }
 
 /* Тонкая световая линия с размытым дублем. */

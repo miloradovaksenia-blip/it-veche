@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, CheckCircle2, Hourglass, KeyRound, Send, Sparkles } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CheckCircle2, Hourglass, KeyRound, LayoutGrid, Send, ShieldCheck, Sparkles, Target, Users } from 'lucide-react';
 import { OPTIONS, getOption, type OptionId } from '../../../shared/options';
 import type { PublicRoundResult, PublicState } from '../../../shared/types';
 import { ApiError, api, store, voterKey } from '../lib/api';
@@ -11,7 +11,7 @@ import { outcomeDetail, outcomeHeadline, roundLabel, votesWord } from '../lib/te
 import { AgendaOptionCard, SelectOptionCard } from '../components/OptionCard';
 import { LiveBars, PhoneBars } from '../components/Results';
 import { OptionArt } from '../components/Scene';
-import { Backdrop, Button, ConnectionBanner, DemoBadge, Logo, MetalTitle, Modal, Spinner } from '../components/ui';
+import { Backdrop, Button, ChromeText, ConnectionBanner, DemoBadge, HeroPhoto, Logo, MetalTitle, Modal, PowerBanner, Spinner, StatPanel } from '../components/ui';
 
 export default function Vote() {
   const { slug = '' } = useParams();
@@ -135,11 +135,11 @@ export default function Vote() {
 
 function Shell({ children, demo, connection }: { children: ReactNode; demo?: boolean; connection?: Parameters<typeof ConnectionBanner>[0]['connection'] }) {
   return (
-    <div className="min-h-[100dvh]">
+    <div className="min-h-[100dvh] overflow-x-hidden">
       <Backdrop intensity={0.8} />
       {connection && <ConnectionBanner connection={connection} />}
       <div className="mx-auto flex min-h-[100dvh] max-w-xl flex-col px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))]">
-        <header className="flex items-center justify-between py-2">
+        <header className="relative z-10 flex items-center justify-between py-2">
           <Logo size="sm" />
           {demo && <DemoBadge />}
         </header>
@@ -163,27 +163,66 @@ function Message({ icon, title, children }: { icon: ReactNode; title: string; ch
 function BeforeStart({ state }: { state: PublicState }) {
   return (
     <div>
-      <MetalTitle inline className="text-[40px]" />
-      <p className="mt-1 text-sm font-semibold text-muted">Будущее цифровых 15 минут</p>
-      <section aria-labelledby="agenda-h" className="mt-6">
+      <PhoneHero>
+        <a href="#options" className="btn-primary mt-6 inline-flex min-h-[52px] items-center gap-2 rounded-full px-7 text-[15px]">
+          Смотреть варианты <ArrowRight className="h-5 w-5" aria-hidden />
+        </a>
+      </PhoneHero>
+      <StatPanel
+        cells={[
+          { icon: <LayoutGrid strokeWidth={1.6} />, value: OPTIONS.length, label: 'варианта' },
+          { icon: <Users strokeWidth={1.6} />, value: state.session.expectedParticipants ?? '—', label: 'участников' },
+          { icon: <ShieldCheck strokeWidth={1.6} />, value: 1, label: 'анонимный голос' },
+          { icon: <Target strokeWidth={1.6} />, value: 1, label: 'общее решение' },
+        ]}
+      />
+      <section aria-labelledby="agenda-h" className="mt-8">
         <p className="text-xs font-bold uppercase tracking-[0.25em] text-neon">Повестка вече</p>
-        <h1 id="agenda-h" className="mt-2 text-[24px] font-extrabold leading-tight text-ice">
+        <h2 id="agenda-h" className="mt-2 font-display text-[22px] font-extrabold leading-tight text-ice">
           {state.session.agenda}
-        </h1>
+        </h2>
       </section>
       <div className="glass mt-5 flex items-center gap-3 rounded-2xl p-4">
         <Hourglass className="h-5 w-5 shrink-0 text-neon" aria-hidden />
         <p className="text-sm text-ice/85">Голосование скоро начнётся. Ознакомьтесь с вариантами — страница обновится сама.</p>
       </div>
-      <p className="mt-6 text-xs font-bold uppercase tracking-[0.25em] text-muted">Варианты ответа</p>
-      <ul className="mt-3 space-y-3">
+      <h2 id="options" className="mt-9 scroll-mt-6 font-display text-[26px] font-black uppercase tracking-wide text-ice">
+        Варианты
+      </h2>
+      <ul className="mt-4 space-y-4">
         {OPTIONS.map((o) => (
           <li key={o.id}>
             <AgendaOptionCard option={o} />
           </li>
         ))}
       </ul>
+      <PowerBanner className="mt-8" />
     </div>
+  );
+}
+
+/** Герой-блок телефона: фото площадки с дугой, хромовый титул, слоган. */
+function PhoneHero({ children, compact = false }: { children?: ReactNode; compact?: boolean }) {
+  return (
+    <section className={`relative -mx-5 -mt-16 overflow-x-clip px-5 pt-16 ${compact ? 'pb-4' : 'pb-8'}`}>
+      <HeroPhoto className={`-right-6 top-0 ${compact ? 'h-[280px] w-[70%]' : 'h-[470px] w-[80%]'}`} words={!compact} wordsClass="!right-[9%] !top-[39%] text-[11px]" />
+      <div className="relative">
+        <MetalTitle bar className={compact ? 'text-[44px]' : 'text-[68px]'} />
+        {!compact && (
+          <>
+            <p className="mt-6 font-display text-[21px] font-black uppercase leading-[1.12] text-ice [text-shadow:0_2px_12px_rgb(5_13_29)]">
+              Твой голос.
+              <br />
+              Наше будущее.
+            </p>
+            <p className="mt-4 max-w-[330px] text-[15px] leading-snug text-ice/90 [text-shadow:0_1px_8px_rgb(5_13_29)]">
+              <span className="text-neon">Выбирай формат</span>, поддерживай коллег и определяй <span className="text-neon">будущее цифровых 15 минут</span> вместе с нами.
+            </p>
+          </>
+        )}
+        {children}
+      </div>
+    </section>
   );
 }
 
@@ -305,8 +344,9 @@ function VoteForm({
 
   return (
     <div className="flex flex-1 flex-col">
-      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">{roundLabel(round.type, round.number)}</p>
-      <h1 className="mt-1 font-display text-[28px] font-semibold leading-tight">Ваш голос имеет значение</h1>
+      <PhoneHero compact />
+      <p className="text-sm font-bold uppercase tracking-[0.2em] text-neon">{roundLabel(round.type, round.number)}</p>
+      <h1 className="mt-1 font-display text-[26px] font-black uppercase leading-tight">Ваш голос имеет значение</h1>
       <p className="mt-2 text-muted">
         {round.type === 'main' ? 'Выберите один из трёх сценариев.' : 'Выберите один из вариантов этого тура.'} Голосование анонимное.
       </p>
@@ -440,7 +480,7 @@ function DecisionView({ state, slug }: { state: PublicState; slug: string }) {
   const [sent, setSent] = useState(() => store.get(`veche:volunteer:${slug}`) === '1');
   return (
     <div>
-      <p className="text-center text-sm font-semibold uppercase tracking-[0.3em] text-muted">Решение принято</p>
+      <p className="text-center text-sm font-bold uppercase tracking-[0.3em] text-neon">Решение принято</p>
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -450,7 +490,9 @@ function DecisionView({ state, slug }: { state: PublicState; slug: string }) {
         <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${a.gradient}`} aria-hidden />
         <OptionArt id={o.id} className="relative mx-auto h-28 w-full max-w-[260px] rounded-xl" />
         <p className={`relative mt-3 font-display text-sm font-semibold ${a.text}`}>{o.number}</p>
-        <h1 className="metal-title-lite relative text-[28px] uppercase leading-tight">{o.title}</h1>
+        <h1 className="relative text-[30px] leading-tight">
+          <ChromeText>{o.title}</ChromeText>
+        </h1>
         <p className={`relative mt-4 font-display text-lg font-semibold ${a.text}`}>{o.finalPhrase}</p>
         <p className="relative mt-3 text-sm text-ice/85">
           {d.optionId === 'freedom'
@@ -468,7 +510,7 @@ function DecisionView({ state, slug }: { state: PublicState; slug: string }) {
           ) : (
             <>
               <p className="font-display text-xl font-semibold">Кто готов принять цифровую эстафету?</p>
-              <Button className="mt-4 w-full !bg-neon text-lg !text-ink-900 hover:!bg-neon-soft" onClick={() => setFormOpen(true)}>
+              <Button className="mt-4 w-full text-lg" onClick={() => setFormOpen(true)}>
                 У меня есть кейс!
               </Button>
               <p className="mt-2 text-xs text-muted">Форма не связана с вашим анонимным голосом</p>
@@ -501,6 +543,7 @@ function DecisionView({ state, slug }: { state: PublicState; slug: string }) {
           </div>
         </details>
       )}
+      <PowerBanner className="mt-8" />
       <p className="mt-6 text-center text-xs text-muted">
         {d.method === 'ceo' ? 'Решение генерального директора после равенства голосов' : 'По итогам голосования, подтверждено генеральным директором'}
       </p>

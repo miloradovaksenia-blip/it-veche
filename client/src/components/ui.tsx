@@ -69,19 +69,110 @@ export function Logo({ size = 'md' }: { size?: 'sm' | 'md' }) {
   );
 }
 
-/** Металлический заголовок события в две строки. */
-export function MetalTitle({ className = '', lite = false, inline = false }: { className?: string; lite?: boolean; inline?: boolean }) {
+/** Объёмный хромовый заголовок «ИТ ВЕЧЕ» (как на дизайн-референсе). */
+export function MetalTitle({ className = '', lite = false, inline = false, bar = false }: { className?: string; lite?: boolean; inline?: boolean; bar?: boolean }) {
+  const lines = inline ? ['ИТ ВЕЧЕ'] : ['ИТ', 'ВЕЧЕ'];
+  if (lite)
+    return (
+      <h1 className={`metal-title-lite uppercase ${className}`}>
+        {lines.map((l) => (
+          <span key={l} className="block">
+            {l}
+          </span>
+        ))}
+      </h1>
+    );
+  const text = lines.map((l) => (
+    <span key={l} className="block">
+      {l}
+    </span>
+  ));
   return (
-    <h1 className={`${lite ? 'metal-title-lite' : 'metal-title'} uppercase ${className}`}>
-      {inline ? (
-        'ИТ ВЕЧЕ'
-      ) : (
-        <>
-          <span className="block">ИТ</span>
-          <span className="block">ВЕЧЕ</span>
-        </>
-      )}
+    <h1 aria-label="ИТ ВЕЧЕ" className={`flex items-stretch gap-[0.1em] ${className}`}>
+      {bar && <span aria-hidden className="chrome-bar my-[0.04em]" />}
+      <span aria-hidden className="chrome3d">
+        <span className="chrome3d__back">{text}</span>
+        <span className="chrome3d__front">{text}</span>
+      </span>
     </h1>
+  );
+}
+
+/** Произвольный текст в объёмном хроме (крупные цифры, название решения). */
+export function ChromeText({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return (
+    <span className={`chrome3d ${className}`}>
+      <span aria-hidden className="chrome3d__back">
+        <span>{children}</span>
+      </span>
+      <span className="chrome3d__front">
+        <span>{children}</span>
+      </span>
+    </span>
+  );
+}
+
+/** Панель цифр: равные ячейки, тонкие разделители, cyan-иконки в контурных квадратах. */
+export function StatPanel({ cells, size = 'phone' }: { cells: { icon: ReactNode; value: ReactNode; label: string }[]; size?: 'phone' | 'hall' }) {
+  const hall = size === 'hall';
+  return (
+    <div className={`glass grid rounded-[18px] shadow-[0_0_30px_-12px_rgba(23,107,255,0.6)] ${hall ? '' : 'grid-cols-2'}`} style={hall ? { gridTemplateColumns: `repeat(${cells.length}, minmax(0, 1fr))` } : undefined}>
+      {cells.map((c, i) => (
+        <div
+          key={i}
+          className={`flex items-center ${hall ? 'gap-5 px-7 py-5' : 'gap-3 px-3.5 py-3.5'} ${
+            hall ? (i ? 'border-l border-line' : '') : `${i % 2 ? 'border-l border-line' : ''} ${i > 1 ? 'border-t border-line' : ''}`
+          }`}
+        >
+          <span className={`flex shrink-0 items-center justify-center rounded-xl border border-neon/50 text-neon ${hall ? 'h-14 w-14 [&_svg]:h-7 [&_svg]:w-7' : 'h-10 w-10 [&_svg]:h-5 [&_svg]:w-5'}`}>{c.icon}</span>
+          <div className="min-w-0">
+            <div className={`font-display font-extrabold leading-none text-ice tabular-nums ${hall ? 'text-[34px]' : 'text-[22px]'}`}>{c.value}</div>
+            <div className={`mt-1.5 font-semibold uppercase tracking-[0.12em] text-muted ${hall ? 'text-[13px]' : 'text-[10px] leading-tight'}`}>{c.label}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Баннер «Сила в людях, технологиях и твоём голосе» с фото инженера. */
+export function PowerBanner({ size = 'phone', className = '' }: { size?: 'phone' | 'hall'; className?: string }) {
+  const hall = size === 'hall';
+  return (
+    <section className={`glass relative overflow-hidden rounded-[18px] ${className}`}>
+      <img src="/img/banner.webp" alt="" aria-hidden className="photo-fade-left absolute inset-y-0 right-0 h-full w-[62%] object-cover object-top" />
+      <div className={`relative ${hall ? 'max-w-[62%] px-10 py-9' : 'max-w-[68%] px-5 py-6'}`}>
+        <p className={`font-display font-extrabold uppercase leading-[1.08] text-ice ${hall ? 'text-[38px]' : 'text-[19px]'}`}>Сила в людях, технологиях и твоём голосе</p>
+        <p className={`mt-3 text-muted ${hall ? 'text-[20px]' : 'text-[13px]'}`}>Каждый голос приближает нас к новым возможностям.</p>
+      </div>
+    </section>
+  );
+}
+
+/** Фото индустриальной площадки с неоновой дугой для героя страницы. */
+export function HeroPhoto({
+  className = '',
+  words = true,
+  wordsClass = '',
+  position = 'object-top',
+}: {
+  className?: string;
+  words?: boolean;
+  wordsClass?: string;
+  position?: string;
+}) {
+  return (
+    <div aria-hidden className={`photo-fade-bottom pointer-events-none absolute ${className}`}>
+      <img src="/img/hero.webp" alt="" className={`photo-fade-left h-full w-full object-cover ${position}`} />
+      {words && (
+        <ul className={`absolute right-[6%] top-[46%] space-y-[0.55em] font-display font-bold uppercase tracking-[0.06em] text-ice [text-shadow:0_0_14px_rgb(5_13_29)] ${wordsClass}`}>
+          <li>Люди</li>
+          <li>Технологии</li>
+          <li>Развитие</li>
+          <li>Результат</li>
+        </ul>
+      )}
+    </div>
   );
 }
 

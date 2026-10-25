@@ -29,7 +29,7 @@ import { LiveBars } from '../components/Results';
 import { useLive, usePublicBaseUrl } from '../lib/live';
 import { accentStyles } from '../lib/accent';
 import { outcomeDetail, outcomeHeadline, roundLabel, title, votesWord } from '../lib/text';
-import { Backdrop, Button, ConnectionBanner, DemoBadge, Logo, Modal, OptionIcon, QrCode, Spinner } from '../components/ui';
+import { Backdrop, Button, ConnectionBanner, DemoBadge, HeroPhoto, Logo, MetalTitle, Modal, OptionIcon, QrCode, Spinner } from '../components/ui';
 
 export default function Admin() {
   const [admin, setAdmin] = useState<boolean | null>(null);
@@ -64,9 +64,10 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center p-5">
       <Backdrop intensity={0.7} />
-      <form onSubmit={submit} className="glass w-full max-w-sm rounded-3xl p-7">
-        <Logo />
-        <h1 className="mt-6 font-display text-2xl font-semibold">Вход организатора</h1>
+      <HeroPhoto className="fixed right-0 top-0 h-[90vh] w-[min(900px,90vw)] opacity-70" words={false} />
+      <form onSubmit={submit} className="glass relative w-full max-w-sm rounded-3xl p-7 shadow-[0_0_40px_-12px_rgba(23,107,255,0.7)]">
+        <MetalTitle bar className="text-[52px]" />
+        <h2 className="mt-6 font-display text-xl font-extrabold uppercase">Вход организатора</h2>
         <label htmlFor="password" className="mt-5 block text-sm font-semibold text-ice/85">
           Пароль
         </label>
@@ -159,7 +160,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       <Backdrop intensity={0.5} />
       <ConnectionBanner connection={selected ? live.connection : 'live'} />
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6">
-        <header className="flex flex-wrap items-center gap-3">
+        <header className="glass flex flex-wrap items-center gap-3 rounded-2xl px-4 py-3 shadow-[0_0_30px_-14px_rgba(23,107,255,0.7)]">
           <Logo />
           <span className="text-muted">·</span>
           <span className="font-semibold text-ice/85">Панель организатора</span>
