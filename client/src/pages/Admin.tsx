@@ -1199,7 +1199,11 @@ function NewSessionModal({
               agenda: agenda.trim(),
               liveResults: live,
             });
+            // Следующая сессия начинается с настроек по умолчанию.
             setTitle('');
+            setCodes(false);
+            setLive(true);
+            setAgenda(DEFAULT_AGENDA);
           } catch (err) {
             setError(err instanceof ApiError ? err.message : 'Ошибка');
           } finally {

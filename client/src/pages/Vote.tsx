@@ -205,7 +205,7 @@ function BeforeStart({ state }: { state: PublicState }) {
 function PhoneHero({ children, compact = false }: { children?: ReactNode; compact?: boolean }) {
   return (
     <section className={`relative -mx-5 -mt-16 overflow-x-clip px-5 pt-16 ${compact ? 'pb-4' : 'pb-8'}`}>
-      <HeroPhoto className={`-right-6 top-0 ${compact ? 'h-[280px] w-[70%]' : 'h-[470px] w-[80%]'}`} words={!compact} wordsClass="!right-[9%] !top-[39%] text-[11px]" />
+      <HeroPhoto className={`-right-6 top-0 ${compact ? 'h-[280px] w-[70%]' : 'h-[470px] w-[80%]'}`} words={!compact} wordsClass="!right-[9%] !top-[39%] text-[11px] max-[419px]:hidden" />
       <div className="relative">
         <MetalTitle bar className={compact ? 'text-[44px]' : 'text-[68px]'} />
         {!compact && (

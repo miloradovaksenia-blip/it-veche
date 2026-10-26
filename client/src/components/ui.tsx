@@ -120,14 +120,14 @@ export function StatPanel({ cells, size = 'phone' }: { cells: { icon: ReactNode;
       {cells.map((c, i) => (
         <div
           key={i}
-          className={`flex items-center ${hall ? 'gap-5 px-7 py-5' : 'gap-3 px-3.5 py-3.5'} ${
+          className={`flex items-center ${hall ? 'gap-5 px-7 py-5' : 'gap-2.5 px-3 py-3.5 min-[380px]:gap-3 min-[380px]:px-3.5'} ${
             hall ? (i ? 'border-l border-line' : '') : `${i % 2 ? 'border-l border-line' : ''} ${i > 1 ? 'border-t border-line' : ''}`
           }`}
         >
           <span className={`flex shrink-0 items-center justify-center rounded-xl border border-neon/50 text-neon ${hall ? 'h-14 w-14 [&_svg]:h-7 [&_svg]:w-7' : 'h-10 w-10 [&_svg]:h-5 [&_svg]:w-5'}`}>{c.icon}</span>
           <div className="min-w-0">
             <div className={`font-display font-extrabold leading-none text-ice tabular-nums ${hall ? 'text-[34px]' : 'text-[22px]'}`}>{c.value}</div>
-            <div className={`mt-1.5 font-semibold uppercase tracking-[0.12em] text-muted ${hall ? 'text-[13px]' : 'text-[10px] leading-tight'}`}>{c.label}</div>
+            <div className={`mt-1.5 font-semibold uppercase text-muted ${hall ? 'text-[13px] tracking-[0.12em]' : 'text-[10px] leading-tight tracking-[0.05em] min-[380px]:tracking-[0.12em]'}`}>{c.label}</div>
           </div>
         </div>
       ))}
